@@ -1,0 +1,65 @@
+from base_vqa_datasets import SingleVQADatsetInstance, BaseSingleVQADataset
+from datasets import load_from_disk
+
+single_image_qa_datasets = {
+    "blink" : ("BLINK", "/linxindisk/VQABench/subset/blink"),
+    "mmbench" : ("MMBench", "/linxindisk/VQABench/subset/mmbench"),
+
+}
+
+class SingleImageQADataset(BaseSingleVQADataset):
+    def __init__(
+            self, 
+            dataset_name: str,
+            dataset: SingleVQADatsetInstance = None
+        ):
+        super().__init__(dataset_name)
+
+        if dataset is None:
+            print(f"Loading {dataset_name}...")
+            class_name, dataset_path = single_image_qa_datasets[dataset_name]
+            self.dataset = eval(class_name)(dataset_path)
+            print(f"Finish loading {dataset_name}")
+
+
+
+class BLINK(SingleVQADatsetInstance):
+    def __init__(self, dataset_path):
+        self.dataset = load_from_disk(dataset_path)
+
+    def get_standard_dataset(self):
+
+        standard_dataset = self.dataset.select_columns(["image_1", "question", "choices", "answer"]).rename_column("image_1", "image")
+
+        def _get_answer_by_index(sample):
+            answer_to_index = {"(A)": 0, "(B)": 1, "(C)": 2, "(D)": 3}
+            index = answer_to_index[sample["answer"]]
+            sample["answer"] = sample["choices"][index]
+            return sample
+
+        # change answer from A/B/C to the concrete value
+        standard_dataset = standard_dataset.map(_get_answer_by_index)
+
+        return standard_dataset
+
+class MMBench(SingleVQADatsetInstance):
+    def __init__(self, dataset_path):
+        self.dataset = load_from_disk(dataset_path)
+
+    def get_standard_dataset(self):
+
+        standard_dataset = self.dataset.select_columns(["image", "question", "hint", "answer", "A", "B", "C", "D"]).rename_column("hint", "context")
+
+        def _create_choices(sample):
+            sample["choices"] = [sample[option] for option in [ "A", "B", "C", "D"] if sample[option] != "nan"]
+
+            answer_to_index = {"A": 0, "B": 1, "C": 2, "D": 3}
+            index = answer_to_index[sample["answer"]]
+
+            sample["answer"] = sample["choices"][index]
+
+            return sample
+
+        standard_dataset = standard_dataset.map(_create_choices)
+        standard_dataset = standard_dataset.remove_columns(["A", "B", "C", "D"])
+        return standard_dataset
