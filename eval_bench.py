@@ -7,7 +7,6 @@ os.environ['HF_HOME'] = '/linxindisk/.cache/huggingface/'
 
 ### TODO
 # -1. class for datasets: single_imageqa_datasets.py
-#     -- SeedBench
 # -2. log: eval_bench.py
 # -3. prompts: prompt_library.json
 #     -- 50 prompts
