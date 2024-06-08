@@ -1,3 +1,4 @@
 vqa_eval.ipynb
 __pycache__/
 subset/
+logs/
