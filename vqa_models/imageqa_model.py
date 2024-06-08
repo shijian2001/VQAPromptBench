@@ -10,7 +10,7 @@ import torch
 from PIL import Image
 from torch.nn.parallel import DataParallel
 
-from base_qa_model import QAModelInstance, QAModel
+from .base_qa_model import QAModelInstance, QAModel
 
 imageqa_models = {
 

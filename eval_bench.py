@@ -1,5 +1,5 @@
-from singe_imageqa_datasets import SingleImageQADataset
-from imageqa_model import ImageQAModel
+from vqa_datasets import SingleImageQADataset
+from vqa_models import ImageQAModel
 from prompt import detailed_imageqa_prompt
 import numpy as np
 from tqdm import tqdm
@@ -13,6 +13,7 @@ os.environ['HF_HOME'] = '/linxindisk/.cache/huggingface/'
 #     -- 50 prompts
 # -2. class for vqa models: imageqa_model.py
 #     -- DeepSeek
+# -3. special process for context
 
 def build_prompt_func(prompt_template: str):
     def imageqa_prompt(question, choices: List[str]):

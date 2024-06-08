@@ -1,4 +1,4 @@
-from base_vqa_datasets import SingleVQADatsetInstance, BaseSingleVQADataset
+from .base_vqa_datasets import SingleVQADatsetInstance, BaseSingleVQADataset
 from datasets import load_from_disk
 
 single_image_qa_datasets = {
