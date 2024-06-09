@@ -9,9 +9,7 @@ import os
 os.environ['HF_HOME'] = '/linxindisk/.cache/huggingface/'
 
 ### TODO
-# -1. prompts: prompt_library.json
-#     -- 50 prompts
-# -2. class for vqa models: imageqa_model.py
+# -1. class for vqa models: imageqa_model.py
     # instructblip-13b √
     # qwenvl-chat √
     # llava-1.5-13b √
@@ -94,6 +92,6 @@ def experiment(
 
 experiment(
     vqa_model_name="qwenvl-chat",
-    benchmark_names=["blink"],
-    prompt_templates=json.load(open("./prompt_factory/prompt_library.json", "r"))["multi-choices image qa"]
+    benchmark_names=["blink", "mmbench", "seedbench1"],
+    prompt_templates=json.load(open("./prompt_factory/prompt_library.json", "r"))["MultiChoiceImageQa"]
 )
