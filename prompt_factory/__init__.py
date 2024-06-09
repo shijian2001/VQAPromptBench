@@ -1,0 +1,1 @@
+from .prompt import detailed_imageqa_prompt

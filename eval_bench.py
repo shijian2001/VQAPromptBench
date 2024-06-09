@@ -1,6 +1,6 @@
 from vqa_datasets import SingleImageQADataset
 from vqa_models import ImageQAModel
-from prompt import detailed_imageqa_prompt
+from prompt_factory import detailed_imageqa_prompt
 import numpy as np
 from tqdm import tqdm
 from typing import *
@@ -95,5 +95,5 @@ def experiment(
 experiment(
     vqa_model_name="qwenvl-chat",
     benchmark_names=["blink"],
-    prompt_templates=json.load(open("./prompt_library.json", "r"))["multi-choices image qa"]
+    prompt_templates=json.load(open("./prompt_factory/prompt_library.json", "r"))["multi-choices image qa"]
 )
