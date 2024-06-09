@@ -39,11 +39,11 @@ def detailed_video2imageqa_prompt(question, choices=[]):
 # imageqa
 ####################################################################################################
 
-def detailed_imageqa_prompt(question, choices=[]):
+def detailed_imageqa_prompt(question, context, choices=[]):
 	if len(choices) == 0:
 		prompt = f"Based on the image, answer the question. Question: {question} Answer:"
 	else:
 		prompt = (f"Based on the image, output the best option for the question.\n"
 				  f"You must only output the option.\n"
-				  f"Question: {question}\nOptions: {' '.join(choices)}\nBest option:(")
+				  f"Context: {context}\nQuestion: {question}\nOptions: {' '.join(choices)}\nBest option:(")
 	return prompt

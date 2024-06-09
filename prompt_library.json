@@ -3,6 +3,6 @@
 
     ],
     "multi-choices image qa":[
-        "Based on the image, output the best option for the question.\nYou must only output the option.\nQuestion: {}\nOptions: {}\nBest option:("
+        "Based on the image, output the best option for the question.\nYou must only output the option.\nContext: {context}\nQuestion: {question}\nOptions: {choices}\nBest option:("
     ]
 }

@@ -5,7 +5,6 @@ single_image_qa_datasets = {
     "blink" : ("BLINK", "./subset/blink"),
     "mmbench" : ("MMBench", "./subset/mmbench"),
     "seedbench1": ("SeedBench1", "./subset/seedbench1")
-
 }
 
 class SingleImageQADataset(BaseSingleVQADataset):
@@ -22,8 +21,6 @@ class SingleImageQADataset(BaseSingleVQADataset):
             self.dataset = eval(class_name)(dataset_path)
             print(f"Finish loading {dataset_name}")
 
-
-
 class BLINK(SingleVQADatsetInstance):
     def __init__(self, dataset_path):
         self.dataset = load_from_disk(dataset_path)
@@ -32,14 +29,18 @@ class BLINK(SingleVQADatsetInstance):
 
         standard_dataset = self.dataset.select_columns(["image_1", "question", "choices", "answer"]).rename_column("image_1", "image")
 
-        def _get_answer_by_index(sample):
+        def _process_data(sample):
+
+            sample["context"] = ""
+            
+            # change answer from A/B/C to the concrete value
             answer_to_index = {"(A)": 0, "(B)": 1, "(C)": 2, "(D)": 3}
             index = answer_to_index[sample["answer"]]
             sample["answer"] = sample["choices"][index]
+
             return sample
 
-        # change answer from A/B/C to the concrete value
-        standard_dataset = standard_dataset.map(_get_answer_by_index)
+        standard_dataset = standard_dataset.map(_process_data)
 
         return standard_dataset
 
@@ -51,7 +52,7 @@ class MMBench(SingleVQADatsetInstance):
 
         standard_dataset = self.dataset.select_columns(["image", "question", "hint", "answer", "A", "B", "C", "D"]).rename_column("hint", "context")
 
-        def _create_choices(sample):
+        def _process_data(sample):
             sample["choices"] = [sample[option] for option in [ "A", "B", "C", "D"] if sample[option] != "nan"]
 
             answer_to_index = {"A": 0, "B": 1, "C": 2, "D": 3}
@@ -61,7 +62,7 @@ class MMBench(SingleVQADatsetInstance):
 
             return sample
 
-        standard_dataset = standard_dataset.map(_create_choices)
+        standard_dataset = standard_dataset.map(_process_data)
         standard_dataset = standard_dataset.remove_columns(["A", "B", "C", "D"])
         return standard_dataset
 
@@ -74,6 +75,8 @@ class SeedBench1(SingleVQADatsetInstance):
         standard_dataset = self.dataset.select_columns(["image", "question", "answer", "choice_a", "choice_b", "choice_c", "choice_d"]).rename_column("image", "image_list")
 
         def _process_data(sample):
+
+            sample["context"] = ""
             
             assert len(sample["image_list"]) == 1
             sample["image"] = sample["image_list"][0]

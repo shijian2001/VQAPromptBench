@@ -81,6 +81,7 @@ class QAModel(Model):
 				return response
 
 	# Add optional para: prompt_func
+	# TODO: Need update for direct qa
 	@torch.no_grad()
 	def qa(self, data, question, prompt_func=None):
 		prompt = prompt_func(question) if prompt_func else self.prompt_func(question)
@@ -88,10 +89,10 @@ class QAModel(Model):
 
 	# Add optional para: prompt_func
 	@torch.no_grad()
-	def multiple_choice_qa(self, data, question, choices, prompt_func=None, answer=None):
+	def multiple_choice_qa(self, data, question, context, choices, prompt_func=None, answer=None):
 		# Get VQA model's answer
 		prefix1, prefix2, options = make_options(choices, self.format)
-		prompt = prompt_func(question, options) if prompt_func else self.prompt_func(question, options)
+		prompt = prompt_func(question, context, options) if prompt_func else self.prompt_func(question, context, options)
 		free_form_answer = self._qa(data, prompt)
 		free_form_answer = free_form_answer.strip()
 
@@ -125,13 +126,13 @@ class QAModel(Model):
 
 	# Add optional para: prompt_func
 	@torch.no_grad()
-	def multiple_choice_qa_random_ordering(self, data, question, choices, prompt_func=None, answer=None, n_trials=3):
+	def multiple_choice_qa_random_ordering(self, data, question, context, choices, prompt_func=None, answer=None, n_trials=3):
 		results = {}
 		accuracy = 0
 		for i in range(n_trials):
 			choices_i = choices.copy()
 			random.shuffle(choices_i)
-			results[i] = self.multiple_choice_qa(data, question, choices_i, prompt_func, answer)
+			results[i] = self.multiple_choice_qa(data, question, context, choices_i, prompt_func, answer)
 			accuracy += results[i]["accuracy"]
 		results["accuracy"] = accuracy / n_trials
 		return results

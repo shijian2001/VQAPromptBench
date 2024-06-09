@@ -12,12 +12,22 @@ os.environ['HF_HOME'] = '/linxindisk/.cache/huggingface/'
 # -1. prompts: prompt_library.json
 #     -- 50 prompts
 # -2. class for vqa models: imageqa_model.py
-#     -- DeepSeek
-# -3. special process for context
+    # instructblip-13b √
+    # qwenvl-chat √
+    # llava-1.5-13b √
+    # llava-1.6-13b √
+    # internvl-chat-v1.5 √
+    # DeepSeek-VL-7B
+    # IDEFICS2-8B
+
 
 def build_prompt_func(prompt_template: str):
-    def imageqa_prompt(question, choices: List[str]):
-        prompt = prompt_template.format(question, choices)
+    def imageqa_prompt(question: str, context: str, choices: List[str]):
+        prompt = prompt_template.format(
+            question=question,
+            context=context,
+            choices=choices
+        )
         return prompt
     return imageqa_prompt
 
@@ -67,6 +77,7 @@ def experiment(
                 result = vqa_model.multiple_choice_qa_random_ordering(
                     data = sample["image"],
                     question = sample["question"],
+                    context=sample["context"],
                     choices = sample["choices"],
                     answer = sample["answer"],
                     prompt_func= build_prompt_func(prompt_template)
