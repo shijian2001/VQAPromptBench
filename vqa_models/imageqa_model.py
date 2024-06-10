@@ -160,6 +160,14 @@ class LLaVA(QAModelInstance):
 																	  )
 			self.model = DataParallel(model)
 			self.processor = LlavaNextProcessor.from_pretrained(ckpt)
+		elif ckpt == "llava-hf/llava-v1.6-vicuna-13b-hf":
+			from transformers import LlavaNextForConditionalGeneration, LlavaNextProcessor
+			self.model = LlavaNextForConditionalGeneration.from_pretrained(
+				ckpt,
+				torch_dtype=model_precision,
+				low_cpu_mem_usage=True,
+			).to(torch_device).eval()
+			self.processor = LlavaNextProcessor.from_pretrained(ckpt)
 		else:
 			from transformers import AutoProcessor, LlavaForConditionalGeneration
 			self.model = LlavaForConditionalGeneration.from_pretrained(
