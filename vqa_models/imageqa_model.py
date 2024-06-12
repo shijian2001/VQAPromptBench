@@ -27,8 +27,11 @@ imageqa_models = {
 	"qwenvl"                : ("QwenVL", "Qwen/Qwen-VL"),
 	"qwenvl-chat"           : ("QwenVLChat", "Qwen/Qwen-VL-Chat"),
 	"internvl-chat-v1.5"    : ("InternVLChat", 'failspy/InternVL-Chat-V1-5-quantable'),
+	"deepseek-vl-7b-chat"   : ("DeepSeekVLChat", 'deepseek-ai/deepseek-vl-7b-chat'),
+	"idefics2-8b"           : ("IDEFICS2", "HuggingFaceM4/idefics2-8b"),
 
 	"gpt4v"                 : ("GPT4V", "<openai-api>"),
+	"gpt4o"                 : ("GPT4O", "<openai-api>"),
 	"qwen-vl-plus"          : ("QwenVLPlus", ['<qwen-api>', '<aliyun-access-id>', '<aliyun-access-secret>']),
 	"qwen-vl-max"           : ("QwenVLMax", ['<qwen-api>', '<aliyun-access-id>', '<aliyun-access-secret>']),
 	"gemini-vision-pro"     : ("GeminiVisionPro", "<google-api>"),
@@ -410,6 +413,109 @@ class InternVLChat(QAModelInstance):
 		response = self.model.chat(self.tokenizer, pixel_values, prompt, generation_config)
 		return response
 
+class DeepSeekVLChat(QAModelInstance):
+	def __init__(self, ckpt="deepseek-ai/deepseek-vl-7b-chat", torch_device=torch.device("cuda"), model_precision=torch.bfloat16):
+		from transformers import AutoModelForCausalLM
+		from deepseek_vl.models import VLChatProcessor, MultiModalityCausalLM
+		from deepseek_vl.utils.io import load_pil_images
+
+		vl_chat_processor: VLChatProcessor = VLChatProcessor.from_pretrained(ckpt)
+		self.tokenizer = vl_chat_processor.tokenizer
+
+		vl_gpt: MultiModalityCausalLM = AutoModelForCausalLM.from_pretrained(ckpt, trust_remote_code=True)
+		self.model = vl_gpt.to(model_precision).to(torch_device).eval()
+
+	def qa(self, image, prompt):
+		if isinstance(image, Image.Image):
+			# Check if the image is a PIL.Image object and save to a temporary file if so
+			with tempfile.NamedTemporaryFile(delete=True, suffix=".png") as tmp:
+				image.save(tmp.name)
+				# Use the temporary image path for the tokenizer
+				image_path = tmp.name
+		else:
+			# If `image` is not a PIL.Image object, use it directly
+			image_path = image
+		
+		# single image conversation
+		conversation = [
+			{
+				"role": "User",
+				"content": f"<image_placeholder>{prompt}",
+				"images": [image_path],
+			},
+			{"role": "Assistant", "content": ""},
+		]
+
+		# load images and prepare for inputs
+		pil_images = load_pil_images(conversation)
+		prepare_inputs = vl_chat_processor(
+			conversations=conversation,
+			images=pil_images,
+			force_batchify=True
+		).to(self.model.device)
+
+		# run image encoder to get the image embeddings
+		inputs_embeds = self.model.prepare_inputs_embeds(**prepare_inputs)
+
+		# run the model to get the response
+		outputs = self.model.language_model.generate(
+			inputs_embeds=inputs_embeds,
+			attention_mask=prepare_inputs.attention_mask,
+			pad_token_id=self.tokenizer.eos_token_id,
+			bos_token_id=self.tokenizer.bos_token_id,
+			eos_token_id=self.tokenizer.eos_token_id,
+			max_new_tokens=512,
+			do_sample=False,
+			use_cache=True
+		)
+
+		answer = self.tokenizer.decode(outputs[0].cpu().tolist(), skip_special_tokens=True)
+
+		return answer
+
+class IDEFICS2(QAModelInstance):
+	def __init__(self, ckpt="HuggingFaceM4/idefics2-8b", torch_device=torch.device("cuda"), model_precision=torch.float16):
+		from transformers import AutoProcessor, AutoModelForVision2Seq
+		from transformers.image_utils import load_image
+
+		self.processor = AutoProcessor.from_pretrained(ckpt)
+		self.model = AutoModelForVision2Seq.from_pretrained(
+			ckpt,
+			torch_dtype=model_precision,
+			_attn_implementation="flash_attention_2"
+		).to(torch_device)
+
+	def qa(self, image, prompt):
+
+		messages = [
+			{
+				"role": "user",
+				"content": [
+					{"type": "image"},
+					{"type": "text", "text": prompt},
+				]
+			},
+			{
+				"role": "assistant",
+				"content": [
+					{"type": "text", "text": ""},
+				]
+			},
+		]
+
+		input_prompt = self.processor.apply_chat_template(messages, add_generation_prompt=True)
+
+		if isinstance(image, Image.Image):
+			inputs = self.processor(text=input_prompt, images=[image], return_tensors="pt")
+		else:
+			inputs = self.processor(text=input_prompt, images=[load_image(image_path)], return_tensors="pt")
+
+		inputs = {k: v.to(self.model.device) for k, v in inputs.items()}
+
+		generated_ids = self.model.generate(**inputs, max_new_tokens=500)
+		generated_texts = self.processor.batch_decode(generated_ids, skip_special_tokens=True)
+
+		return generated_texts[0]
 
 class GPT4V(QAModelInstance):
 	model_stamp = 'gpt-4-turbo'

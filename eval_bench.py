@@ -8,17 +8,6 @@ import json
 import os
 os.environ['HF_HOME'] = '/linxindisk/.cache/huggingface/'
 
-### TODO
-# -1. class for vqa models: imageqa_model.py
-    # instructblip-13b √
-    # qwenvl-chat √
-    # llava-1.5-13b √
-    # llava-1.6-13b √
-    # internvl-chat-v1.5 √
-    # DeepSeek-VL-7B
-    # IDEFICS2-8B
-
-
 def build_prompt_func(prompt_template: str):
     def imageqa_prompt(question: str, context: str, choices: List[str]):
         prompt = prompt_template.format(
@@ -53,7 +42,7 @@ def experiment(
 
     # load vqa model
     # pass default prompt template
-    vqa_model = ImageQAModel(vqa_model_name, prompt_func=detailed_imageqa_prompt, enable_choice_search=True, torch_device=1)
+    vqa_model = ImageQAModel(vqa_model_name, prompt_func=detailed_imageqa_prompt, enable_choice_search=True)
     print("===============================================================")
     print(f"{vqa_model_name} evaluation started:")
     print("===============================================================")
