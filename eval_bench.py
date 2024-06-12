@@ -53,7 +53,7 @@ def experiment(
 
     # load vqa model
     # pass default prompt template
-    vqa_model = ImageQAModel(vqa_model_name, prompt_func=detailed_imageqa_prompt, enable_choice_search=True, torch_device=0)
+    vqa_model = ImageQAModel(vqa_model_name, prompt_func=detailed_imageqa_prompt, enable_choice_search=True, torch_device=1)
     print("===============================================================")
     print(f"{vqa_model_name} evaluation started:")
     print("===============================================================")
@@ -91,7 +91,7 @@ def experiment(
 
 
 experiment(
-    vqa_model_name="llavav1.6-13b",
+    vqa_model_name="internvl-chat-v1.5",
     benchmark_names=["blink", "mmbench", "seedbench1"],
     prompt_templates=json.load(open("./prompt_factory/prompt_library.json", "r"))["MultiChoiceImageQa"]
 )

@@ -117,7 +117,7 @@ class InstructBlip(QAModelInstance):
 	def __init__(self, ckpt="Salesforce/instructblip-flan-t5-xxl", torch_device=torch.device("cuda"), model_precision=torch.float32):
 		from transformers import InstructBlipProcessor, InstructBlipForConditionalGeneration, InstructBlipConfig, AutoModelForVision2Seq
 		from accelerate import infer_auto_device_map, init_empty_weights
-		if ckpt == "Salesforce/instructblip-vicuna-13b":
+		if ckpt == "Salesforce/instructblip-vicuna-34b": # temp changed
 			# Load the model configuration.
 			config = InstructBlipConfig.from_pretrained(ckpt)
 			# Initialize the model with the given configuration.
@@ -489,6 +489,10 @@ class GPT4V(QAModelInstance):
 			self.completion_tokens += response.usage.completion_tokens
 			self.prompt_tokens += response.usage.prompt_tokens
 			return response.choices[0].message.content
+		
+
+class GPT4O(GPT4V):
+	model_stamp = 'gpt-4o'
 
 
 def upload_image_to_oss(image_path, bucket_name='benverse', endpoint='http://oss-cn-hongkong.aliyuncs.com',
@@ -633,55 +637,47 @@ class GeminiVisionPro(GeminiVisionAPI):
 	model_name = 'gemini-pro-vision'
 
 
-class LLaVAAPI(QAModelInstance):
+class ReplicateAPI(QAModelInstance):
 	model_name = None
-	model_list = {
-		"llava-v1.6-34b": "yorickvp/llava-v1.6-34b:41ecfbfb261e6c1adf3ad896c9066ca98346996d7c4045c5bc944a79d430f174",
-	}
+	model_list = None
 
-	def __init__(self, ckpt, *args, cache_path='./llavaapi_cache', **kwargs):
+	def __init__(self, ckpt, *args, **kwargs):
 		import replicate
-		self.cache_path = cache_path
 		self.replicate_client = replicate.Client(api_token=ckpt)
 
-	def _get_response(self, image_path, base64_image, prompt):
-		with diskcache.Cache(self.cache_path, size_limit=10 * (2 ** 30)) as cache:
-			key = json.dumps([base64_image, prompt])
-			response = cache.get(key, None)
-			if response is None:
-				image = open(image_path, "rb")
-				input = {
-					"image" : image,
-					"prompt": prompt
-				}
-				while True:
-					try:
-						output = self.replicate_client.run(
-							self.model_list[self.model_name],
-							input=input
-						)
-						response = "".join(output)
-					except:
-						time.sleep(60)
-						continue
-					break
-				cache.set(key, response)
-			return response
+	def _get_response(self, image_path, prompt):
+		image = open(image_path, "rb")
+		input = {
+			"image" : image,
+			"prompt": prompt
+		}
+		while True:
+			try:
+				output = self.replicate_client.run(
+					self.model_list[self.model_name],
+					input=input
+				)
+				response = "".join(output)
+			except:
+				time.sleep(60)
+				continue
+			break
+		return response
 
 	def qa(self, image, prompt):
 		if isinstance(image, str):
-			with open(image, "rb") as image_file:
-				base64_image = base64.b64encode(image_file.read()).decode('utf-8')
-			response = self._get_response(image, base64_image, prompt)
+			response = self._get_response(image, prompt)
 		else:
-			base64_image = image_to_base64(image)
 			with tempfile.NamedTemporaryFile(delete=True, suffix=".png") as tmp:
 				image.save(tmp.name)
 				image_path = tmp.name
-				response = self._get_response(image_path, base64_image, prompt)
+				response = self._get_response(image_path, prompt)
 
 		return response
 
 
-class LLaVA34B(LLaVAAPI):
+class LLaVA34B(ReplicateAPI):
 	model_name = 'llava-v1.6-34b'
+	model_list = {
+		"llava-v1.6-34b": "yorickvp/llava-v1.6-34b:41ecfbfb261e6c1adf3ad896c9066ca98346996d7c4045c5bc944a79d430f174",
+	}
