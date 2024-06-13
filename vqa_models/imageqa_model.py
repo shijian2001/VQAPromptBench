@@ -476,16 +476,25 @@ class DeepSeekVLChat(QAModelInstance):
 class IDEFICS2(QAModelInstance):
 	def __init__(self, ckpt="HuggingFaceM4/idefics2-8b", torch_device=torch.device("cuda"), model_precision=torch.float16):
 		from transformers import AutoProcessor, AutoModelForVision2Seq
-		from transformers.image_utils import load_image
 
 		self.processor = AutoProcessor.from_pretrained(ckpt)
 		self.model = AutoModelForVision2Seq.from_pretrained(
 			ckpt,
 			torch_dtype=model_precision,
-			_attn_implementation="flash_attention_2"
-		).to(torch_device)
+			_attn_implementation="flash_attention_2",
+			device_map="auto"
+		)
+		# .to(torch_device)
+	
+	def _extract_assistant_content(self, text: str):
+		parts = text.split('\nAssistant:', 1)
+		if len(parts) > 1:
+			return 'Assistant:' + parts[1]
+		return text
 
 	def qa(self, image, prompt):
+
+		from transformers.image_utils import load_image
 
 		messages = [
 			{
@@ -495,12 +504,12 @@ class IDEFICS2(QAModelInstance):
 					{"type": "text", "text": prompt},
 				]
 			},
-			{
-				"role": "assistant",
-				"content": [
-					{"type": "text", "text": ""},
-				]
-			},
+			# {
+			# 	"role": "assistant",
+			# 	"content": [
+			# 		{"type": "text", "text": ""},
+			# 	]
+			# },
 		]
 
 		input_prompt = self.processor.apply_chat_template(messages, add_generation_prompt=True)
@@ -508,14 +517,14 @@ class IDEFICS2(QAModelInstance):
 		if isinstance(image, Image.Image):
 			inputs = self.processor(text=input_prompt, images=[image], return_tensors="pt")
 		else:
-			inputs = self.processor(text=input_prompt, images=[load_image(image_path)], return_tensors="pt")
+			inputs = self.processor(text=input_prompt, images=[load_image(image)], return_tensors="pt")
 
 		inputs = {k: v.to(self.model.device) for k, v in inputs.items()}
 
 		generated_ids = self.model.generate(**inputs, max_new_tokens=500)
 		generated_texts = self.processor.batch_decode(generated_ids, skip_special_tokens=True)
 
-		return generated_texts[0]
+		return self._extract_assistant_content(generated_texts[0])
 
 class GPT4V(QAModelInstance):
 	model_stamp = 'gpt-4-turbo'

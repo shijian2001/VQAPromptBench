@@ -80,7 +80,7 @@ def experiment(
 
 
 experiment(
-    vqa_model_name="internvl-chat-v1.5",
+    vqa_model_name="idefics2-8b",
     benchmark_names=["blink", "mmbench", "seedbench1"],
     prompt_templates=json.load(open("./prompt_factory/prompt_library.json", "r"))["MultiChoiceImageQa"]
 )
