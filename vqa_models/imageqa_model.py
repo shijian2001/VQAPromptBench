@@ -417,38 +417,41 @@ class DeepSeekVLChat(QAModelInstance):
 	def __init__(self, ckpt="deepseek-ai/deepseek-vl-7b-chat", torch_device=torch.device("cuda"), model_precision=torch.bfloat16):
 		from transformers import AutoModelForCausalLM
 		from deepseek_vl.models import VLChatProcessor, MultiModalityCausalLM
-		from deepseek_vl.utils.io import load_pil_images
 
-		vl_chat_processor: VLChatProcessor = VLChatProcessor.from_pretrained(ckpt)
-		self.tokenizer = vl_chat_processor.tokenizer
+		self.vl_chat_processor: VLChatProcessor = VLChatProcessor.from_pretrained(ckpt)
+		self.tokenizer = self.vl_chat_processor.tokenizer
 
 		vl_gpt: MultiModalityCausalLM = AutoModelForCausalLM.from_pretrained(ckpt, trust_remote_code=True)
 		self.model = vl_gpt.to(model_precision).to(torch_device).eval()
 
 	def qa(self, image, prompt):
-		if isinstance(image, Image.Image):
-			# Check if the image is a PIL.Image object and save to a temporary file if so
-			with tempfile.NamedTemporaryFile(delete=True, suffix=".png") as tmp:
-				image.save(tmp.name)
-				# Use the temporary image path for the tokenizer
-				image_path = tmp.name
-		else:
-			# If `image` is not a PIL.Image object, use it directly
-			image_path = image
-		
-		# single image conversation
-		conversation = [
-			{
-				"role": "User",
-				"content": f"<image_placeholder>{prompt}",
-				"images": [image_path],
-			},
-			{"role": "Assistant", "content": ""},
-		]
 
-		# load images and prepare for inputs
-		pil_images = load_pil_images(conversation)
-		prepare_inputs = vl_chat_processor(
+		from deepseek_vl.utils.io import load_pil_images
+		
+		with tempfile.NamedTemporaryFile(delete=True, suffix=".png") as tmp:
+			if isinstance(image, Image.Image):
+				# Check if the image is a PIL.Image object and save to a temporary file if so
+					image.save(tmp.name)
+					# Use the temporary image path for the tokenizer
+					image_path = tmp.name
+			else:
+				# If `image` is not a PIL.Image object, use it directly
+				image_path = image
+			
+			# single image conversation
+			conversation = [
+				{
+					"role": "User",
+					"content": f"<image_placeholder>{prompt}",
+					"images": [image_path],
+				},
+				{"role": "Assistant", "content": ""},
+			]
+
+			# load images and prepare for inputs
+			pil_images = load_pil_images(conversation)
+			
+		prepare_inputs = self.vl_chat_processor(
 			conversations=conversation,
 			images=pil_images,
 			force_batchify=True
