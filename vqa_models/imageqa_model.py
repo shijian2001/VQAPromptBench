@@ -38,18 +38,6 @@ imageqa_models = {
 }
 
 
-SYSTEM_PROMPT = """You are doing a multiple-choice question. 
-You will be given an image, question, context, and corresponding options.
-Please give the best option first, and then add your explanation afterward.
-Strictly follow the json answer format:
-```json
-{
-	Choice:
-	Explanation:
-}
-```"""
-
-
 def set_imageqa_model_key(model_name, key):
 	imageqa_models[model_name] = (imageqa_models[model_name][0], key)
 
@@ -109,22 +97,11 @@ class ImageQAModel(QAModel):
 			return image_to_base64(data)
 		
 	@torch.no_grad()
-	def _qa_with_explanation(self, data, prompt):
-		system_prompt = SYSTEM_PROMPT
-		_prompt = system_prompt + "\n" + prompt
-		print(_prompt)
-		print("-----------------------")
-		free_form_answer = self._qa(data, _prompt)
-		print(free_form_answer)
-		print("=================================")
-		try:
-			answer = json.loads(free_form_answer)
-			choice, explanation = answer["Choice"], answer["Explanation"]
-			return choice, explanation
-		except Exception as e:
-			print(f"Encountered an error: {e}. Retrying...")
-			return self._qa_with_explanation(data, prompt)
-
+	def _get_explanation(self, data, qa_prompt: str, multiple_choice_answer: str):
+		prompt = qa_prompt + "\n" + f"You have given your choice:{multiple_choice_answer}, please give a detailed explanation."
+		explanation = self._qa(data, prompt)
+		explanation = explanation.strip()
+		return explanation
 
 class BLIP2(QAModelInstance):
 	def __init__(self, ckpt="Salesforce/blip2-flan-t5-xxl", torch_device=torch.device("cuda"), model_precision=torch.float32):

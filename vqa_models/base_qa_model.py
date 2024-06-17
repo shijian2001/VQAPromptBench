@@ -55,7 +55,7 @@ class QAModel(Model):
 
 		self.enable_interpretation: bool = enable_interpretation
 		if self.enable_interpretation:
-			print(f"[Interpretable] start Interpretable mode")
+			print(f"[Interpretable] Start Interpretable Mode")
 
 		self.enable_choice_search = enable_choice_search
 		if enable_choice_search:
@@ -94,7 +94,7 @@ class QAModel(Model):
 		return self._qa(data, prompt)
 	
 	@torch.no_grad()
-	def _qa_with_explanation(self, data, prompt):
+	def _get_explanation(self, data, qa_prompt: str, multiple_choice_answer: str):
 		""" abstract method """
 
 	# Add optional para: prompt_func
@@ -103,10 +103,7 @@ class QAModel(Model):
 		# Get VQA model's answer
 		prefix1, prefix2, options = make_options(choices, self.format)
 		prompt = prompt_func(question, context, options) if prompt_func else self.prompt_func(question, context, options)
-		if self.enable_interpretation:
-			free_form_answer, explanation = self._qa_with_explanation(data, prompt)
-		else:
-			free_form_answer = self._qa(data, prompt)
+		free_form_answer = self._qa(data, prompt)
 		free_form_answer = free_form_answer.strip()
 
 		# Limit the answer to the choices
@@ -127,12 +124,16 @@ class QAModel(Model):
 				if idx != -1:
 					multiple_choice_answer = choices[idx]
 					break
+		
+		if self.enable_interpretation:
+			explanation = self._get_explanation(data, prompt, multiple_choice_answer)
 
 		result = {
-			"free_form_answer"      : f"{free_form_answer}; Explanation: {explanation}" if self.enable_interpretation else free_form_answer,
+			"free_form_answer"      : f"{free_form_answer}\nExplanation: {explanation}" if self.enable_interpretation else free_form_answer,
 			"multiple_choice_answer": multiple_choice_answer,
 			"choices"               : choices.copy(),
 		}
+
 		if answer is not None:
 			result["accuracy"] = int(answer == multiple_choice_answer)
 		return result

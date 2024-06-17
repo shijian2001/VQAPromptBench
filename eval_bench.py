@@ -56,9 +56,9 @@ def experiment(
 
         for i, prompt_template in enumerate(prompt_templates):
             print("===============================================================")
-            print(f"Evaluated on prompt {i}:")
+            print(f"Evaluated on prompt {i+1}:")
             print("===============================================================")
-            logs[vqa_model_name][benchmark_name][f'prompt_{i}'] = []
+            logs[vqa_model_name][benchmark_name][f'prompt_{i+1}'] = []
             for sample in tqdm(benchmark):
                 result = vqa_model.multiple_choice_qa_random_ordering(
                     data = sample["image"],
@@ -68,8 +68,8 @@ def experiment(
                     answer = sample["answer"],
                     prompt_func= build_prompt_func(prompt_template)
                 )
-                logs[vqa_model_name][benchmark_name][f'prompt_{i}'].append(result["accuracy"])
-            print(f"Overall Acc for the prompt {i}: {np.mean(logs[vqa_model_name][benchmark_name][f'prompt_{i}'])}")
+                logs[vqa_model_name][benchmark_name][f'prompt_{i+1}'].append(result["accuracy"])
+            print(f"Overall Acc for the prompt {i+1}: {np.mean(logs[vqa_model_name][benchmark_name][f'prompt_{i+1}'])}")
 
     # save logs to disk
     with open(f'./logs/{vqa_model_name}_eval.json', "w", encoding='utf-8') as f:
