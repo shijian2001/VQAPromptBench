@@ -38,6 +38,18 @@ imageqa_models = {
 }
 
 
+SYSTEM_PROMPT = """You are doing a multiple-choice question. 
+You will be given an image, question, context, and corresponding options.
+Please give the best option first, and then add your explanation afterward.
+Strictly follow the json answer format:
+```json
+{
+	Choice:
+	Explanation:
+}
+```"""
+
+
 def set_imageqa_model_key(model_name, key):
 	imageqa_models[model_name] = (imageqa_models[model_name][0], key)
 
@@ -67,9 +79,10 @@ class ImageQAModel(QAModel):
 			choice_format='letter',
 			enable_choice_search: bool = False,
 			cache_path: str = None,
+			enable_interpretation: bool = False
 
 	):
-		super().__init__(model_name, prompt_func, choice_format, enable_choice_search, cache_path)
+		super().__init__(model_name, prompt_func, choice_format, enable_choice_search, cache_path, enable_interpretation)
 
 		if isinstance(torch_device, str):
 			torch_device = torch.device(torch_device)
@@ -94,6 +107,23 @@ class ImageQAModel(QAModel):
 			return data
 		else:
 			return image_to_base64(data)
+		
+	@torch.no_grad()
+	def _qa_with_explanation(self, data, prompt):
+		system_prompt = SYSTEM_PROMPT
+		_prompt = system_prompt + "\n" + prompt
+		print(_prompt)
+		print("-----------------------")
+		free_form_answer = self._qa(data, _prompt)
+		print(free_form_answer)
+		print("=================================")
+		try:
+			answer = json.loads(free_form_answer)
+			choice, explanation = answer["Choice"], answer["Explanation"]
+			return choice, explanation
+		except Exception as e:
+			print(f"Encountered an error: {e}. Retrying...")
+			return self._qa_with_explanation(data, prompt)
 
 
 class BLIP2(QAModelInstance):
@@ -527,6 +557,7 @@ class IDEFICS2(QAModelInstance):
 		generated_ids = self.model.generate(**inputs, max_new_tokens=500)
 		generated_texts = self.processor.batch_decode(generated_ids, skip_special_tokens=True)
 
+		# print(generated_texts[0])
 		return self._extract_assistant_content(generated_texts[0])
 
 class GPT4V(QAModelInstance):

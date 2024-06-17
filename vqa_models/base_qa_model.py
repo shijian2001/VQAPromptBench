@@ -39,6 +39,7 @@ class QAModel(Model):
 			choice_format='letter',
 			enable_choice_search: bool = False,
 			cache_path: str = None,
+			enable_interpretation: bool = False
 
 	):
 		self.model = None
@@ -47,10 +48,14 @@ class QAModel(Model):
 		self.format = choice_format
 		self.cache_path = cache_path
 
-		if self.cache_path is None:
+		if self.cache_path is not None:
 			print(f"[IMPORTANT] model cache is enabled, cache path: {cache_path}")
 		else:
 			print("[IMPORTANT] model cache is disabled")
+
+		self.enable_interpretation: bool = enable_interpretation
+		if self.enable_interpretation:
+			print(f"[Interpretable] start Interpretable mode")
 
 		self.enable_choice_search = enable_choice_search
 		if enable_choice_search:
@@ -81,11 +86,16 @@ class QAModel(Model):
 				return response
 
 	# Add optional para: prompt_func
-	# TODO: Need update for direct qa
+	# TODO: Need update for direct QA
 	@torch.no_grad()
 	def qa(self, data, question, prompt_func=None):
-		prompt = prompt_func(question) if prompt_func else self.prompt_func(question)
+		# prompt = prompt_func(question) if prompt_func else self.prompt_func(question)
+		prompt = question
 		return self._qa(data, prompt)
+	
+	@torch.no_grad()
+	def _qa_with_explanation(self, data, prompt):
+		""" abstract method """
 
 	# Add optional para: prompt_func
 	@torch.no_grad()
@@ -93,7 +103,10 @@ class QAModel(Model):
 		# Get VQA model's answer
 		prefix1, prefix2, options = make_options(choices, self.format)
 		prompt = prompt_func(question, context, options) if prompt_func else self.prompt_func(question, context, options)
-		free_form_answer = self._qa(data, prompt)
+		if self.enable_interpretation:
+			free_form_answer, explanation = self._qa_with_explanation(data, prompt)
+		else:
+			free_form_answer = self._qa(data, prompt)
 		free_form_answer = free_form_answer.strip()
 
 		# Limit the answer to the choices
@@ -116,7 +129,7 @@ class QAModel(Model):
 					break
 
 		result = {
-			"free_form_answer"      : free_form_answer,
+			"free_form_answer"      : f"{free_form_answer}; Explanation: {explanation}" if self.enable_interpretation else free_form_answer,
 			"multiple_choice_answer": multiple_choice_answer,
 			"choices"               : choices.copy(),
 		}

@@ -6,7 +6,6 @@ from tqdm import tqdm
 from typing import *
 import json
 import os
-os.environ['HF_HOME'] = '/linxindisk/.cache/huggingface/'
 
 def build_prompt_func(prompt_template: str):
     def imageqa_prompt(question: str, context: str, choices: List[str]):
