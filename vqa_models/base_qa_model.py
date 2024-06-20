@@ -6,6 +6,18 @@ import sentence_transformers
 import torch
 import json
 
+SYSTEM_PROMPT = """You are doing a multiple-choice question. 
+You will be given an image, question, context, and corresponding options. 
+Please give the best option first, and then add your explanation afterward. Please strictly follow the json output format:
+
+## example
+{
+    "choice": "The second image is brighter than the first.",
+    "explanation": "The first image shows the underwater world, which has a grayish tone. The second image depicts the forest under the sun, which has a bright luster, so the second image is brighter."
+}
+
+## Given the following information:"""
+
 def make_options(choices, format='letter'):
 	assert format in ['numeric', 'letter']
 	if format == 'numeric':
@@ -94,8 +106,17 @@ class QAModel(Model):
 		return self._qa(data, prompt)
 	
 	@torch.no_grad()
-	def _get_explanation(self, data, qa_prompt: str, multiple_choice_answer: str):
-		""" abstract method """
+	# def _get_explanation(self, data, qa_prompt: str, multiple_choice_answer: str):
+	# 	""" abstract method """
+	def _get_explanation(self, data, prompt, free_form_answer: str, max_retry=3):
+		for _ in range(max_retry):
+			try:
+				free_form_answer = json.loads(free_form_answer)
+				choice, explanation = free_form_answer["choice"], free_form_answer["explanation"]
+				return choice, explanation
+			except Exception:
+				free_form_answer = self._qa(data, prompt).strip()
+		return None, None
 
 	# Add optional para: prompt_func
 	@torch.no_grad()
@@ -103,6 +124,8 @@ class QAModel(Model):
 		# Get VQA model's answer
 		prefix1, prefix2, options = make_options(choices, self.format)
 		prompt = prompt_func(question, context, options) if prompt_func else self.prompt_func(question, context, options)
+		if self.enable_interpretation:
+			prompt = SYSTEM_PROMPT + "\n" + prompt
 		free_form_answer = self._qa(data, prompt)
 		free_form_answer = free_form_answer.strip()
 
@@ -126,10 +149,21 @@ class QAModel(Model):
 					break
 		
 		if self.enable_interpretation:
-			explanation = self._get_explanation(data, prompt, multiple_choice_answer)
+			choice, explanation = self._get_explanation(data, prompt, free_form_answer)
+			if choice is None:
+				choice = free_form_answer
+			if explanation is None:
+				explanation = "nan"
+				print("[Error] Fail to get explanation")
 
+		# result = {
+		# 	"free_form_answer"      : f"{free_form_answer}\nExplanation: {explanation}" if self.enable_interpretation else free_form_answer,
+		# 	"multiple_choice_answer": multiple_choice_answer,
+		# 	"choices"               : choices.copy(),
+		# }
 		result = {
-			"free_form_answer"      : f"{free_form_answer}\nExplanation: {explanation}" if self.enable_interpretation else free_form_answer,
+			"free_form_answer"      : choice if self.enable_interpretation else free_form_answer,
+			"explanation:"          : explanation if self.enable_interpretation else "nan",
 			"multiple_choice_answer": multiple_choice_answer,
 			"choices"               : choices.copy(),
 		}

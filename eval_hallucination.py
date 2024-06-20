@@ -8,17 +8,13 @@ import json
 import os
 
 def build_prompt_func(prompt_template: str):
-    # add system prompt
-    system_prompt = """You are doing a multiple-choice question. 
-You will be given an image, question, context, and corresponding options.
-Please give the best option"""
     def imageqa_prompt(question: str, context: str, choices: List[str]):
         prompt = prompt_template.format(
             question=question,
             context=context,
             choices=choices
         )
-        return system_prompt + "\n" + prompt
+        return prompt
     return imageqa_prompt
 
 # load vqa model
@@ -45,7 +41,7 @@ for i, prompt_template in enumerate(prompt_templates):
     logs[vqa_model_name][benchmark_name][f'prompt_{i+1}']["accuracy"] = []
     logs[vqa_model_name][benchmark_name][f'prompt_{i+1}']["explanation"] = []
     for sample in tqdm(benchmark):
-        result = vqa_model.multiple_choice_qa_random_ordering(
+        result = vqa_model.multiple_choice_qa(
             data = sample["image"],
             question = sample["question"],
             context=sample["context"],
@@ -58,7 +54,7 @@ for i, prompt_template in enumerate(prompt_templates):
     print(f"Overall Acc for the prompt {i+1}: {np.mean(logs[vqa_model_name][benchmark_name][f'prompt_{i+1}']['accuracy'])}")
 
 # save logs to disk
-with open(f'./logs/hallucination_logs/{vqa_model_name}_{benchmark_name}_eval.json', "w", encoding='utf-8') as f:
+with open(f'./logs/hallucination_logs/one-stage_{vqa_model_name}_{benchmark_name}_eval.json', "w", encoding='utf-8') as f:
     json.dump(logs, f, ensure_ascii=False, indent=4)
 
-print(f"{vqa_model_name}-{benchmark_name} evaluations have saved successfully!")
+print(f"one stage {vqa_model_name}-{benchmark_name} evaluations have saved successfully!")

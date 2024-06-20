@@ -96,12 +96,12 @@ class ImageQAModel(QAModel):
 		else:
 			return image_to_base64(data)
 		
-	@torch.no_grad()
-	def _get_explanation(self, data, qa_prompt: str, multiple_choice_answer: str):
-		prompt = qa_prompt + "\n" + f"You have given your choice:{multiple_choice_answer}, please give a detailed explanation."
-		explanation = self._qa(data, prompt)
-		explanation = explanation.strip()
-		return explanation
+	# @torch.no_grad()
+	# def _get_explanation(self, data, qa_prompt: str, multiple_choice_answer: str):
+	# 	prompt = qa_prompt + "\n" + f"You have given your choice:{multiple_choice_answer}, please explain your answer according to the given image."
+	# 	explanation = self._qa(data, prompt)
+	# 	explanation = explanation.strip()
+	# 	return explanation
 
 class BLIP2(QAModelInstance):
 	def __init__(self, ckpt="Salesforce/blip2-flan-t5-xxl", torch_device=torch.device("cuda"), model_precision=torch.float32):
@@ -476,7 +476,8 @@ class DeepSeekVLChat(QAModelInstance):
 			eos_token_id=self.tokenizer.eos_token_id,
 			max_new_tokens=512,
 			do_sample=False,
-			use_cache=True
+			# change from True to False
+			use_cache=False
 		)
 
 		answer = self.tokenizer.decode(outputs[0].cpu().tolist(), skip_special_tokens=True)
