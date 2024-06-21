@@ -8,12 +8,23 @@ import json
 
 SYSTEM_PROMPT = """You are doing a multiple-choice question. 
 You will be given an image, question, context, and corresponding options. 
-Please give the best option first, and then add your explanation afterward. Please strictly follow the json output format:
+Please give the best option first, and then add your explanation afterward. 
+Please strictly follow the json output format with the two keys: "choice", "explanation"
 
 ## example
 {
     "choice": "The second image is brighter than the first.",
     "explanation": "The first image shows the underwater world, which has a grayish tone. The second image depicts the forest under the sun, which has a bright luster, so the second image is brighter."
+}
+
+{
+    "choice": "(B) The first image is brighter than the first.",
+    "explanation": "The first image depicts a room filled with sunlight, whereas the second image shows that this is a night scene, so the first image is brighter."
+}
+
+{
+    "choice": "(C)",
+    "explanation": "There are three story fragments in the table in the image. The stories numbered 1 and 2 are both written by British novelists, and only the third fragment is written by an American novelist. Therefore, the correct answer is (C) the third fragment."
 }
 
 ## Given the following information:"""
@@ -129,6 +140,14 @@ class QAModel(Model):
 		free_form_answer = self._qa(data, prompt)
 		free_form_answer = free_form_answer.strip()
 
+		if self.enable_interpretation:
+			choice, explanation = self._get_explanation(data, prompt, free_form_answer)
+			if choice is not None:
+				free_form_answer = choice
+			if explanation is None:
+				explanation = "nan"
+				print("[Error] Fail to get explanation")
+
 		# Limit the answer to the choices
 		if free_form_answer in choices:
 			multiple_choice_answer = free_form_answer
@@ -147,14 +166,6 @@ class QAModel(Model):
 				if idx != -1:
 					multiple_choice_answer = choices[idx]
 					break
-		
-		if self.enable_interpretation:
-			choice, explanation = self._get_explanation(data, prompt, free_form_answer)
-			if choice is None:
-				choice = free_form_answer
-			if explanation is None:
-				explanation = "nan"
-				print("[Error] Fail to get explanation")
 
 		# result = {
 		# 	"free_form_answer"      : f"{free_form_answer}\nExplanation: {explanation}" if self.enable_interpretation else free_form_answer,
@@ -162,7 +173,7 @@ class QAModel(Model):
 		# 	"choices"               : choices.copy(),
 		# }
 		result = {
-			"free_form_answer"      : choice if self.enable_interpretation else free_form_answer,
+			"free_form_answer"      : free_form_answer,
 			"explanation:"          : explanation if self.enable_interpretation else "nan",
 			"multiple_choice_answer": multiple_choice_answer,
 			"choices"               : choices.copy(),
