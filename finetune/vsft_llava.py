@@ -19,8 +19,8 @@ python examples/scripts/vsft_llava.py \
     --model_name_or_path="llava-hf/llava-1.5-7b-hf" \
     --report_to="wandb" \
     --learning_rate=1.4e-5 \
-    --per_device_train_batch_size=8 \
-    --gradient_accumulation_steps=1 \
+    --per_device_train_batch_size=4 \
+    --gradient_accumulation_steps=2 \
     --output_dir="data/vsft-llava-1.5-7b-hf" \
     --logging_steps=5 \
     --num_train_epochs=1 \
@@ -31,17 +31,16 @@ python examples/scripts/vsft_llava.py \
     --fp16=True
     
 # peft:
-python examples/scripts/vsft_llava.py \
-    --dataset_name="HuggingFaceH4/llava-instruct-mix-vsft" \    
+python vsft_llava.py \
+    --dataset_name="../subset/aug_llava_instruct_mix_vsft" \
     --model_name_or_path="llava-hf/llava-1.5-7b-hf" \
     --report_to="wandb" \
     --learning_rate=1.4e-5 \
     --per_device_train_batch_size=8 \
     --gradient_accumulation_steps=1 \
-    --output_dir="data/vsft-llava-1.5-7b-hf" \
+    --output_dir="../logs/checkpoints/aug-vsft-llava-1.5-7b-hf" \
     --logging_steps=5 \
     --num_train_epochs=1 \
-    --push_to_hub \
     --gradient_checkpointing \
     --remove_unused_columns=False \
     --torch_dtype=float16 \
@@ -49,7 +48,7 @@ python examples/scripts/vsft_llava.py \
     --use_peft=True \
     --lora_r=64 \
     --lora_alpha=16 \
-    --lora_target_modules=all-linear"
+    --lora_target_modules="[q_proj,k_proj,v_proj]"
 
 # evaluation:
  
@@ -81,7 +80,7 @@ if TRL_USE_RICH:
 
 import torch
 from accelerate import Accelerator
-from datasets import load_dataset
+from datasets import load_dataset, load_from_disk
 
 from tqdm.rich import tqdm
 from transformers import AutoTokenizer, AutoProcessor, LlavaForConditionalGeneration
@@ -149,14 +148,12 @@ if __name__ == "__main__":
             texts = []
             images = []
             for example in examples:
-                if len(example["images"]) > 1:
-                    raise ValueError("This collator only supports one image per example")
                 messages = example["messages"]
                 text = self.processor.tokenizer.apply_chat_template(
                     messages, tokenize=False, add_generation_prompt=False
                 )
                 texts.append(text)
-                images.append(example["images"][0])
+                images.append(example["images"])
 
             batch = self.processor(texts, images, return_tensors="pt", padding=True)
 
@@ -172,7 +169,8 @@ if __name__ == "__main__":
     ################
     # Dataset
     ################
-    raw_datasets = load_dataset(sft_script_args.dataset_name)
+    # raw_datasets = load_dataset(sft_script_args.dataset_name)
+    raw_datasets = load_from_disk(sft_script_args.dataset_name)
     train_dataset = raw_datasets[sft_script_args.dataset_train_split]
     eval_dataset = raw_datasets[sft_script_args.dataset_test_split]
 
@@ -207,6 +205,6 @@ if __name__ == "__main__":
 
     with save_context:
         trainer.save_model(training_args.output_dir)
-        trainer.push_to_hub()
-        if Accelerator().is_main_process:
-            processor.push_to_hub(training_args.hub_model_id)
+        # trainer.push_to_hub()
+        # if Accelerator().is_main_process:
+        #     processor.push_to_hub(training_args.hub_model_id)
