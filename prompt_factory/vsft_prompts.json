@@ -1,0 +1,14 @@
+{
+    "MultiQATemplates":[
+        "{question}",
+        "Question: {question}",
+        "Based on the image, answer the following question:\n{question}",
+        "From the image, determine the following question:\n{question}",
+        "Analyze the image and respond to this question: {question}",
+        "Given the image, answer the question: {question}",
+        "Based on what you see in the image, answer the question: {question}",
+        "Considering the image, answer the following question:\n{question}",
+        "Referring to the image, answer the following question:\n{question}",
+        "From the given image, please give your answer to the question: {question}"
+    ]
+}
