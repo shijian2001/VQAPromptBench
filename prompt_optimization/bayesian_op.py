@@ -4,9 +4,6 @@ from tqdm import tqdm
 from typing import *
 from skopt import gp_minimize
 from skopt.space import Categorical
-from vqa_models import ImageQAModel
-from vqa_datasets import SingleImageQADataset
-from prompt_factory import detailed_imageqa_prompt
 
 class VQAPromptBayesOptimizer:
     def __init__(self, vqa_model, vqa_dataset, prompts_pool, n_calls=10, random_state=42):
@@ -52,12 +49,3 @@ class VQAPromptBayesOptimizer:
         best_prompt = res.x[0]
         best_performance = -res.fun
         return best_prompt, best_performance
-
-
-vqa_model = ImageQAModel("deepseek-vl-7b-chat", prompt_func=detailed_imageqa_prompt, enable_choice_search=True, torch_device=0)
-vqa_dataset = SingleImageQADataset("mmbench").get_dataset()
-prompts_pool = json.load(open("prompt_factory/prompt_library.json", "r"))["MultiChoiceImageQa"]
-optimizer = VQAPromptBayesOptimizer(vqa_model, vqa_dataset, prompts_pool, n_calls=10, random_state=42)
-best_prompt, best_performance = optimizer.optimize()
-print(f"Best prompt: {best_prompt}")
-print(f"Best Acc: {best_performance:.4f}")
