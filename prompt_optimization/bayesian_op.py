@@ -1,37 +1,63 @@
+import json
 import numpy as np
+from tqdm import tqdm
+from typing import *
 from skopt import gp_minimize
 from skopt.space import Categorical
+from vqa_models import ImageQAModel
+from vqa_datasets import SingleImageQADataset
+from prompt_factory import detailed_imageqa_prompt
 
-def evaluator(prompt):
-    accuracy = get_model_performance(prompt)
-    return -accuracy
+class VQAPromptBayesOptimizer:
+    def __init__(self, vqa_model, vqa_dataset, prompts_pool, n_calls=10, random_state=42):
+        self.vqa_model = vqa_model
+        self.vqa_dataset = vqa_dataset
+        self.prompts_pool = prompts_pool
+        self.n_calls = n_calls
+        self.random_state = random_state
 
-def get_model_performance(prompt):
-    np.random.seed()
-    return np.random.random()
+        self.search_space = [Categorical(prompts_pool, name='PromptTemplate')]
 
-prompt_templates = [
-    'Template 1',
-    'Template 2',
-    'Template 3',
-    'Template 4',
-    'Template 5'
-]
-space = [Categorical(prompt_templates, name='prompt templates')]
-print(space)
+    def _build_prompt_func(self, prompt_template: str):
+        def imageqa_prompt(question: str, context: str, choices: List[str]):
+            prompt = prompt_template.format(
+                question=question,
+                context=context,
+                choices=choices
+            )
+            return prompt
+        return imageqa_prompt
 
-result = gp_minimize(
-    func=evaluator,
-    dimensions=space,
-    acq_func='EI',
-    n_calls=10,
-    random_state=0
-)
+    def evaluator(self, prompt_template):
+        accs = []
+        for sample in tqdm(self.vqa_dataset):
+            result = self.vqa_model.multiple_choice_qa(
+                data = sample["image"],
+                question = sample["question"],
+                context=sample["context"],
+                choices = sample["choices"],
+                answer = sample["answer"],
+                prompt_func= self._build_prompt_func(prompt_template)
+            )
+            accuracy = result["accuracy"]
+            accs.append(accuracy)
+        return np.mean(accs)
 
-best_template_index = np.argmin(result.func_vals)
-print(best_template_index)
-print(result.x)
-best_template = result.x[best_template_index]
+    def objective(self, params):
+        prompt_template = params[0]
+        return -self.evaluator(prompt_template)
 
-print(f"The best prompt template is: {best_template}")
-print(f"Performance: {-result.fun}")
+    def optimize(self):
+        res = gp_minimize(self.objective, self.search_space, n_calls=self.n_calls, random_state=self.random_state)
+        best_prompt = res.x[0]
+        best_performance = -res.fun
+        return best_prompt, best_performance
+
+
+vqa_model = ImageQAModel("deepseek-vl-7b-chat", prompt_func=detailed_imageqa_prompt, enable_choice_search=True, torch_device=0)
+vqa_dataset = SingleImageQADataset("mmbench").get_dataset()
+prompts_pool = json.load(open("prompt_factory/prompt_library.json", "r"))["MultiChoiceImageQa"]
+optimizer = VQAPromptBayesOptimizer(vqa_model, vqa_dataset, prompts_pool, n_calls=10, random_state=42)
+best_prompt, best_performance = optimizer.optimize()
+print(f"Best prompt: {best_prompt}")
+print(f"Best Acc: {best_performance:.4f}")
