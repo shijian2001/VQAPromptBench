@@ -21,6 +21,7 @@ imageqa_models = {
 	"blip2-flant5xxl"       : ("BLIP2", "Salesforce/blip2-flan-t5-xxl"),
 	"llavav1.5-7b"          : ("LLaVA", "llava-hf/llava-1.5-7b-hf"),
 	"llavav1.5-13b"         : ("LLaVA", "llava-hf/llava-1.5-13b-hf"),
+	"llavav1.6-7b"          : ("LLaVA", "llava-hf/llava-v1.6-vicuna-7b-hf"),
 	"llavav1.6-13b"         : ("LLaVA", "llava-hf/llava-v1.6-vicuna-13b-hf"),
 	"llavav1.6-34b"         : ("LLaVA", "llava-hf/llava-v1.6-34b-hf"),
 	"llava1.6-34b-api"      : ("LLaVA34B", '<replicate-api>'),
@@ -171,7 +172,7 @@ class LLaVA(QAModelInstance):
 																	  )
 			self.model = DataParallel(model)
 			self.processor = LlavaNextProcessor.from_pretrained(ckpt)
-		elif ckpt == "llava-hf/llava-v1.6-vicuna-13b-hf":
+		elif ckpt == "llava-hf/llava-v1.6-vicuna-13b-hf" or ckpt == "llava-hf/llava-v1.6-vicuna-7b-hf":
 			from transformers import LlavaNextForConditionalGeneration, LlavaNextProcessor
 			self.model = LlavaNextForConditionalGeneration.from_pretrained(
 				ckpt,
