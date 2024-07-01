@@ -29,6 +29,7 @@ imageqa_models = {
 	"internvl-chat-v1.5"    : ("InternVLChat", 'failspy/InternVL-Chat-V1-5-quantable'),
 	"deepseek-vl-7b-chat"   : ("DeepSeekVLChat", 'deepseek-ai/deepseek-vl-7b-chat'),
 	"idefics2-8b"           : ("IDEFICS2", "HuggingFaceM4/idefics2-8b"),
+	"phi-3-vision"          : ("Phi3Vision", "microsoft/Phi-3-vision-128k-instruct"),
 
 	"gpt4v"                 : ("GPT4V", "<openai-api>"),
 	"gpt4o"                 : ("GPT4O", "<openai-api>"),
@@ -537,6 +538,46 @@ class IDEFICS2(QAModelInstance):
 
 		# print(generated_texts[0])
 		return self._extract_assistant_content(generated_texts[0])
+
+class Phi3Vision(QAModelInstance):
+	def __init__(self, ckpt="microsoft/Phi-3-vision-128k-instruct", torch_device=torch.device("cuda"), model_precision=torch.bfloat16):
+		from transformers import AutoModelForCausalLM, AutoProcessor
+
+		self.device = torch_device
+		# use _attn_implementation='eager' to disable flash attention
+		self.model = AutoModelForCausalLM.from_pretrained(ckpt, trust_remote_code=True, torch_dtype=model_precision, _attn_implementation='flash_attention_2').to(self.device)
+		self.processor = AutoProcessor.from_pretrained(ckpt, trust_remote_code=True) 
+
+	
+	def qa(self, image, prompt):
+		messages = [ 
+			{
+				"role": "user", 
+				"content": f"<|image_1|>\n{prompt}"
+			}, 
+			{
+				"role": "assistant", 
+				"content": ""
+			}, 
+		] 
+
+		input_prompt = self.processor.tokenizer.apply_chat_template(messages, tokenize=False, add_generation_prompt=True)
+
+		inputs = self.processor(input_prompt, [image], return_tensors="pt").to(self.device) 
+
+		generation_args = { 
+			"max_new_tokens": 500, 
+			# "temperature": 0.0, 
+			# "do_sample": False, 
+		} 
+
+		generate_ids = self.model.generate(**inputs, eos_token_id=self.processor.tokenizer.eos_token_id, **generation_args) 
+
+		# remove input tokens 
+		generate_ids = generate_ids[:, inputs['input_ids'].shape[1]:]
+		response = self.processor.batch_decode(generate_ids, skip_special_tokens=True, clean_up_tokenization_spaces=False)[0] 
+		
+		return response
 
 class GPT4V(QAModelInstance):
 	model_stamp = 'gpt-4-turbo'

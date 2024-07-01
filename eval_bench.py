@@ -72,14 +72,14 @@ def experiment(
             print(f"Overall Acc for the prompt {i+1}: {np.mean(logs[vqa_model_name][benchmark_name][f'prompt_{i+1}'])}")
 
     # save logs to disk
-    with open(f'./logs/{vqa_model_name}_eval.json', "w", encoding='utf-8') as f:
+    with open(f'./logs/eval_logs/{vqa_model_name}_eval.json', "w", encoding='utf-8') as f:
         json.dump(logs, f, ensure_ascii=False, indent=4)
 
     print(f"{vqa_model_name} evaluations have saved successfully!")
 
 
 experiment(
-    vqa_model_name="deepseek-vl-7b-chat",
+    vqa_model_name="phi-3-vision",
     benchmark_names=["blink", "mmbench", "seedbench1"],
     prompt_templates=json.load(open("./prompt_factory/prompt_library.json", "r"))["MultiChoiceImageQa"]
 )
