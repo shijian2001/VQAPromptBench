@@ -1,6 +1,6 @@
 import torch
 from datasets import load_dataset, load_from_disk
-from transformers import AutoProcessor, Idefics2ForConditionalGeneration
+from transformers import LlavaNextForConditionalGeneration, LlavaNextProcessor
 from transformers import TrainingArguments, Trainer
 from accelerate import Accelerator
 from accelerate import PartialState
@@ -14,12 +14,17 @@ print(f'training on {num_gpus} GPUs')
 
 ## Data Processor
 
+LlaVATemplate = "{% for message in messages %}{{message['role'].upper()}}{% if message['content'][0]['type'] == 'image' %}{{':'}}{% else %}{{': '}}{% endif %}{% for line in message['content'] %}{% if line['type'] == 'text' %}{{line['text']}}{% elif line['type'] == 'image' %}{{ '<image>' }}{% endif %}{% endfor %}\n{% endfor %}{% if add_generation_prompt %}{{ 'Assistant:' }}{% endif %}"
+
 class DataCollator:
     def __init__(self, processor):
         self.processor = processor
-        # self.image_token_id = processor.tokenizer.additional_special_tokens_ids[
-        #     processor.tokenizer.additional_special_tokens.index("<image>")
-        # ]
+
+    def _apply_chat_template(template, messages, add_generation_prompt=False):
+        from jinja2 import Template
+        template = Template(template)
+        result = template.render(messages=messages, add_generation_prompt=add_generation_prompt)
+        return result
 
     def __call__(self, examples):
         texts = []
@@ -27,7 +32,7 @@ class DataCollator:
         for example in examples:
             image = example["images"]
             messages = example["messages"]
-            text = processor.apply_chat_template(messages, add_generation_prompt=False)
+            text = self._apply_chat_template(LlaVATemplate, messages, add_generation_prompt=False)
             texts.append(text.strip())
             images.append([image])
 
@@ -41,17 +46,16 @@ class DataCollator:
 
 ## Load processor and model
 
-processor = AutoProcessor.from_pretrained(
-    "HuggingFaceM4/idefics2-8b",
-    do_image_splitting=False
+processor = LlavaNextProcessor.from_pretrained(
+    "llava-hf/llava-v1.6-vicuna-7b-hf",
 )
 
 data_collator = DataCollator(processor)
 
-model = Idefics2ForConditionalGeneration.from_pretrained(
-    "HuggingFaceM4/idefics2-8b",
-    torch_dtype=torch.bfloat16,
-    _attn_implementation="flash_attention_2", # Only available on A100 or H100
+model = LlavaNextForConditionalGeneration.from_pretrained(
+    "llava-hf/llava-v1.6-vicuna-7b-hf",
+    torch_dtype=torch.float16, 
+    low_cpu_mem_usage=True,
     device_map={'':device_string}
 )
 
@@ -77,14 +81,14 @@ training_args = TrainingArguments(
     learning_rate=2e-5,
     weight_decay=0.,
     logging_steps=1,
-    output_dir="../logs/checkpoints/idefics2-8b-multi-templates-vsft", #TODO should be modifed
+    output_dir="../logs/checkpoints/llava-next-7b-multi-templates-vsft", #TODO should be modifed
     save_strategy="steps",
     save_steps=50000,
     save_total_limit=1,
     eval_strategy="steps",
     eval_steps=250,
-    bf16=True,
-    hub_model_id="shijianS01/idefics2-8b-multi-templates-vsft",
+    fp16=True,
+    hub_model_id="shijianS01/llava-next-7b-multi-templates-vsft",
     remove_unused_columns=False,
     report_to="wandb", # wandb or none
 )
