@@ -1,5 +1,4 @@
 ## 🌟 Install
-You can copy the tree finetune scirpts directly
 ```
 pip install -U pip
 pip install -r requirements.txt
