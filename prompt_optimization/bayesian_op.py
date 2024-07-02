@@ -27,7 +27,7 @@ class VQAPromptBayesOptimizer:
     def evaluator(self, prompt_template):
         accs = []
         for sample in tqdm(self.vqa_dataset):
-            result = self.vqa_model.multiple_choice_qa(
+            result = self.vqa_model.multiple_choice_qa_random_ordering(
                 data = sample["image"],
                 question = sample["question"],
                 context=sample["context"],
@@ -37,10 +37,14 @@ class VQAPromptBayesOptimizer:
             )
             accuracy = result["accuracy"]
             accs.append(accuracy)
-        return np.mean(accs)
+        metric = np.mean(accs)
+        print("Acc:", metric)
+        return metric
 
     def objective(self, params):
         prompt_template = params[0]
+        prompt_index = self.prompts_pool.index(prompt_template) + 1
+        print(f"Evaluating prompt_{prompt_index}")
         return -self.evaluator(prompt_template)
 
     def optimize(self):
