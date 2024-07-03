@@ -24,11 +24,15 @@ class VQAPromptBayesOptimizer:
         ):
 
             self.vqa_model = vqa_model
-            self.vqa_dataset = vqa_dataset
+
+            if num_samples is not None:
+                self.vqa_dataset = vqa_dataset.shuffle().select(range(num_samples))
+            else:
+                self.vqa_dataset = vqa_dataset
+
             self.prompts_pool = prompts_pool
             self.n_trials = n_trials
             self.random_state = random_state
-            self.num_samples = num_samples
             self.enable_option_ordering = enable_option_ordering
             self.study = optuna.create_study(direction='maximize', sampler=optuna.samplers.TPESampler(seed=self.random_state))
 
@@ -59,14 +63,7 @@ class VQAPromptBayesOptimizer:
 
     def evaluator(self, prompt_template):
         accs = []
-
-        if self.num_samples is not None:
-            dataset = self.vqa_dataset.shuffle().select(range(self.num_samples))
-        else:
-            dataset = self.vqa_dataset
-
-        for sample in tqdm(dataset):
-
+        for sample in tqdm(self.vqa_dataset):
             if self.enable_option_ordering:
                 result = self.vqa_model.multiple_choice_qa_random_ordering(
                     data=sample["image"],

@@ -14,7 +14,7 @@ vqa_model = ImageQAModel("deepseek-vl-7b-chat", prompt_func=detailed_imageqa_pro
 vqa_dataset = SingleImageQADataset("mmbench").get_dataset()
 
 # define bayes searcher
-optimizer = VQAPromptBayesOptimizer(vqa_model, vqa_dataset, prompts_pool, n_trials=10, random_state=42)
+optimizer = VQAPromptBayesOptimizer(vqa_model, vqa_dataset, prompts_pool, n_trials=10, random_state=42, num_samples=10, enable_option_ordering=False)
 best_prompt, best_performance = optimizer.optimize()
 best_prompt_index = prompts_pool.index(best_prompt) + 1
 print(f"Best prompt is prompt_{best_prompt_index}:\n##############\n{best_prompt}\n##############")
