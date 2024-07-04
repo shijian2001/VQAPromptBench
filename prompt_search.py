@@ -8,7 +8,7 @@ import json
 prompts_pool = json.load(open("prompt_factory/prompt_library.json", "r"))["MultiChoiceImageQa"]
 
 # load vqa model
-vqa_model = ImageQAModel("deepseek-vl-7b-chat", prompt_func=detailed_imageqa_prompt, enable_choice_search=True, torch_device=1)
+vqa_model = ImageQAModel("idefics2-8b", prompt_func=detailed_imageqa_prompt, enable_choice_search=True, torch_device=1)
 
 # load vqa dataset
 vqa_dataset = SingleImageQADataset("mmbench").get_dataset()
