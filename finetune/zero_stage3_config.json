@@ -1,0 +1,20 @@
+{
+    "zero_optimization": {
+        "stage": 3,
+        "offload_param": {
+            "device": "none"
+        },
+        "offload_optimizer": {
+            "device": "none"
+        }
+    },
+    "fp16": {
+        "enabled": "auto"
+    },
+    "bf16": {
+        "enabled": "auto"
+    },
+    "train_batch_size": "auto",
+    "train_micro_batch_size_per_gpu": "auto",
+    "gradient_accumulation_steps": "auto"
+}
