@@ -20,7 +20,7 @@ class BaseGenerator():
         self.templates = templates
     
     def generator(self):
-        pass
+        "(Abstract method) abstract data generator method"
 
 class DataRichPromptLessGenerator(BaseGenerator):
     def __init__(self, dataset_path: str, templates: List[str]):
@@ -70,15 +70,68 @@ class PromptRichDataLessGenerator(BaseGenerator):
     def __init__(self, dataset_path: str, templates: List[str]):
         super().__init__(dataset_path, templates)
 
+    def _make_options(self, choices, format='letter'):
+        assert format in ['numeric', 'letter']
+        if format == 'numeric':
+            prefix1 = [str(i + 1) for i in range(len(choices))]
+        else:
+            prefix1 = [chr(ord("a") + i).upper() for i in range(len(choices))]
+        prefix2 = [f"({p})" for p in prefix1]
+        return prefix1, prefix2, [f'{p} {c}' for p, c in zip(prefix2, choices)]
+
     def generator(self):
-        pass
+        for data in tqdm(self.dataset):
+            prompts = [
+                template.format(
+                    question = data["question"],
+                    context = data["context"],
+                    choices = self._make_options(data["choices"])[2]
+                ) for template in self.templates
+            ]
+
+            for prompt in prompts:
+                vsft_data = {
+                    'messages': [
+                        {
+                            'content': [
+                                {
+                                    'index': 0, 
+                                    'text': None, 
+                                    'type': 'image'
+                                },
+                                {
+                                    'index': None,
+                                    'text': prompt,
+                                    'type': 'text'
+                                }
+                            ],
+                            'role': 'user'
+                        },
+                        {
+                            'content': [
+                                {
+                                    'index': None,
+                                    'text': data["answer"],
+                                    'type': 'text'
+                                }
+                            ],
+                            'role': 'assistant'
+                        }
+                    ],
+                    'images': data["image"]
+                }
+
+                yield vsft_data
 
 if __name__ == "__main__":
-    generator = DataRichPromptLessGenerator(
-        dataset_path="../subset/llava_instruct_mix_vsft",
-        templates=json.load(open("../prompt_factory/vsft_prompts.json", "r"))["MultiQATemplates"]
+    generator = PromptRichDataLessGenerator(
+        dataset_path="../subset/meta_mm_vsft",
+        templates=json.load(open("../prompt_factory/prompt_pool.json"))["MultiChoiceImageQa"]
     ).generator
     gen_dataset = Dataset.from_generator(generator)
     gen_dataset = gen_dataset.shuffle(42)
     # gen_dataset.save_to_disk('../subset/gen_llava_instruct_mix_vsft')
     print(len(gen_dataset))
+    dataset = gen_dataset.train_test_split(test_size=0.1)
+    print(dataset)
+    # dataset.push_to_hub("shijianS01/6k-templates-mm-vsft-300k")
