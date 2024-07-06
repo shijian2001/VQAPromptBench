@@ -3,11 +3,11 @@
 pip install -U pip
 pip install -r requirements.txt
 ```
-Remember to check if *deepspeed* is installed successfully
+Remember to check if ```deepspeed``` is installed successfully
 
-Then you can download the three finetune scipts and *zero_stage3_config.json* directly.
+Then you can download the three finetune scipts and ```zero_stage3_config.json``` directly.
 
-Please put *zero_stage3_config.json* and finetune scripts in the same directory
+Please put ```zero_stage3_config.json``` and finetune scripts in the same directory
 
 ## 🌟 Run
 
