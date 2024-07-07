@@ -2,9 +2,11 @@
 # DataRichPromptLessGenerator:
     # Data: 15k samples from HuggingFaceH4/llava-instruct-mix-vsft
     # Prompt Templates: 20 templates
+    # shijianS01/20-templates-llava-vsft-300k
 # PromptRichDataLessGenerator:
     # Data: 50 samples from MMBench
     # Prompt Templates: 6000 templates
+    # shijianS01/6k-templates-mm-vsft-300k
 
 from typing import List
 from datasets import load_from_disk, load_dataset, Dataset

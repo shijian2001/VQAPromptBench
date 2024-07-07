@@ -1,6 +1,9 @@
 import torch
-from transformers import HfArgumentParser, TrainingArguments, AutoProcessor, Idefics2ForConditionalGeneration, TrainingArguments, Trainer
+import argparse
+from transformers import TrainingArguments, AutoProcessor, Idefics2ForConditionalGeneration, TrainingArguments, Trainer
 from datasets import load_dataset, load_from_disk
+
+print("Visual Instruction Tuning for IDEFICS2-8B is Starting!")
 
 ## Data Processor
 
@@ -29,7 +32,7 @@ class DataCollator:
 
         return batch
 
-def main(training_args):
+def main(data_path, output_dir, hub_model_id):
 
     ## Load processor
 
@@ -49,11 +52,9 @@ def main(training_args):
 
     ## Load data
 
-    data_path = "shijianS01/20-templates-llava-vsft-300k"
     dataset = load_dataset(data_path)
 
     # should be modifed
-    # data_path = "../subset/aug_llava_instruct_mix_vsft"
     # dataset = load_from_disk(data_path)
 
     train_dataset, eval_dataset = dataset["train"], dataset["test"]
@@ -74,14 +75,15 @@ def main(training_args):
         learning_rate=2e-5,
         weight_decay=0.,
         logging_steps=1,
-        output_dir="../logs/checkpoints/idefics2-8b-multi-templates-vsft", #TODO should be modifed
+        output_dir=output_dir,
         save_strategy="steps",
         save_steps=50000,
         save_total_limit=1,
         eval_strategy="steps",
         eval_steps=250,
         fp16=True,
-        hub_model_id="shijianS01/idefics2-8b-multi-templates-vsft",
+        hub_model_id = f"shijianS01/idefics2-8b-{hub_model_id}",
+        # hub_model_id="shijianS01/idefics2-8b-multi-templates-vsft",
         remove_unused_columns=False,
         report_to="none", # wandb or none
         deepspeed="zero_stage3_config.json",
@@ -100,9 +102,11 @@ def main(training_args):
     trainer.push_to_hub()
 
 if __name__ == "__main__":
-    parser = HfArgumentParser(
-        (TrainingArguments)
-    )
-    
-    training_args = parser.parse_args_into_dataclasses()
-    main(training_args)
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--data_path", type=str, required=True, help="Path to the dataset")
+    parser.add_argument("--output_dir", type=str, required=True, help="Directory for saving checkpoints")
+    parser.add_argument("--hub_model_id", type=str, required=True, help="Huggingface Model ID")
+
+    args = parser.parse_args()
+
+    main(args.data_path, args.output_dir, args.hub_model_id)
