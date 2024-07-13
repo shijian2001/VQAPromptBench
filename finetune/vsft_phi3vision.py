@@ -2,6 +2,7 @@ import torch
 import argparse
 from datasets import load_dataset, load_from_disk
 from transformers import TrainingArguments, Trainer
+from peft import LoraConfig, get_peft_model
 from transformers import AutoProcessor, AutoModelForCausalLM
 
 print("Visual Instruction Tuning for Phi-3-Vision is Starting!")
@@ -29,10 +30,18 @@ class DataCollator:
         labels[labels == self.processor.tokenizer.pad_token_id] = -100
         batch["labels"] = labels
 
+        # print(len(labels[0]))
+        # print(labels)
+
+        if len(labels[labels >= 32064].flatten()) != 0:
+            print("suppass vocab size")
+            print(labels[labels >= 32064].flatten())
+            print(messages)
+
         return batch
 
 
-def main(data_path, output_dir, hub_model_id):
+def main(data_path, output_dir, hub_model_id, use_lora=False):
 
     ## Load processor
 
@@ -51,12 +60,30 @@ def main(data_path, output_dir, hub_model_id):
         _attn_implementation="flash_attention_2", # Only available on A100 or H100
     )
 
+    ## Lora
+    if use_lora:
+        print("==================================================")
+        print("Lauching lora finetuning!")
+        print("==================================================")
+        lora_config = LoraConfig(
+            r=4,
+            lora_alpha=4,
+            lora_dropout=0.1,
+            bias="none",
+            target_modules=["q_proj", "k_proj", "v_proj"],
+            task_type="CAUSAL_LM",
+            use_dora=False
+        )
+
+        model = get_peft_model(model, lora_config)
+        model.print_trainable_parameters()
+
     ## Load data
 
-    dataset = load_dataset(data_path)
+    # dataset = load_dataset(data_path)
 
     # should be modifed
-    # dataset = load_from_disk(data_path)
+    dataset = load_from_disk(data_path)
 
     train_dataset, eval_dataset = dataset["train"], dataset["test"]
 
@@ -100,7 +127,7 @@ def main(data_path, output_dir, hub_model_id):
 
     trainer.train()
 
-    trainer.push_to_hub()
+    # trainer.push_to_hub()
 
 
 if __name__ == "__main__":
@@ -108,7 +135,8 @@ if __name__ == "__main__":
     parser.add_argument("--data_path", type=str, required=True, help="Path to the dataset")
     parser.add_argument("--output_dir", type=str, required=True, help="Directory for saving checkpoints")
     parser.add_argument("--hub_model_id", type=str, required=True, help="Huggingface Model ID")
+    parser.add_argument("--use_lora", type=bool, help="Lauching lora finetuning")
 
     args = parser.parse_args()
 
-    main(args.data_path, args.output_dir, args.hub_model_id)
+    main(args.data_path, args.output_dir, args.hub_model_id, args.use_lora)
