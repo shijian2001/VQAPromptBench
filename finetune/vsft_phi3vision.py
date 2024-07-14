@@ -2,6 +2,7 @@ import torch
 import argparse
 from datasets import load_dataset, load_from_disk
 from transformers import TrainingArguments, Trainer
+from transformers import BitsAndBytesConfig
 from peft import LoraConfig, get_peft_model
 from transformers import AutoProcessor, AutoModelForCausalLM
 
@@ -30,18 +31,10 @@ class DataCollator:
         labels[labels == self.processor.tokenizer.pad_token_id] = -100
         batch["labels"] = labels
 
-        # print(len(labels[0]))
-        # print(labels)
-
-        if len(labels[labels >= 32064].flatten()) != 0:
-            print("suppass vocab size")
-            print(labels[labels >= 32064].flatten())
-            print(messages)
-
         return batch
 
 
-def main(data_path, output_dir, hub_model_id, use_lora=False):
+def main(data_path, output_dir, hub_model_id, use_lora=False, use_4_bit=False):
 
     ## Load processor
 
@@ -53,12 +46,31 @@ def main(data_path, output_dir, hub_model_id, use_lora=False):
 
     ## Load model
 
-    model = AutoModelForCausalLM.from_pretrained(
-        "microsoft/Phi-3-vision-128k-instruct",
-        trust_remote_code=True,
-        torch_dtype=torch.float16,
-        _attn_implementation="flash_attention_2", # Only available on A100 or H100
-    )
+    # USE_4_BIT
+    if use_4_bit:
+        bnb_config = BitsAndBytesConfig(
+            load_in_4bit=True,
+            bnb_4bit_quant_type="nf4",
+            bnb_4bit_compute_dtype=torch.bfloat16,
+            bnb_4bit_use_double_quant=True,
+            bnb_4bit_quant_storage=torch.bfloat16,
+            llm_int8_skip_modules=["lm_head", "embed_tokens"],
+        )
+
+        model = AutoModelForCausalLM.from_pretrained(
+            "microsoft/Phi-3-vision-128k-instruct",
+            trust_remote_code=True,
+            torch_dtype=torch.bfloat16,
+            quantization_config=bnb_config,
+            _attn_implementation="flash_attention_2", # Only available on A100 or H100
+        )
+    else:
+        model = AutoModelForCausalLM.from_pretrained(
+            "microsoft/Phi-3-vision-128k-instruct",
+            trust_remote_code=True,
+            torch_dtype=torch.float16,
+            _attn_implementation="flash_attention_2", # Only available on A100 or H100
+        )
 
     ## Lora
     if use_lora:
@@ -80,10 +92,10 @@ def main(data_path, output_dir, hub_model_id, use_lora=False):
 
     ## Load data
 
-    # dataset = load_dataset(data_path)
+    dataset = load_dataset(data_path)
 
     # should be modifed
-    dataset = load_from_disk(data_path)
+    # dataset = load_from_disk(data_path)
 
     train_dataset, eval_dataset = dataset["train"], dataset["test"]
 
@@ -97,7 +109,7 @@ def main(data_path, output_dir, hub_model_id, use_lora=False):
         num_train_epochs=1,
         per_device_train_batch_size=1, # Phi-3-V only supports batch_size == 1
         per_device_eval_batch_size=1, # Phi-3-V only supports batch_size == 1
-        gradient_accumulation_steps=16, # modified along with above
+        gradient_accumulation_steps=128, # modified along with above
         warmup_ratio=0.03,
         lr_scheduler_type="cosine",
         learning_rate=2e-5,
@@ -136,7 +148,8 @@ if __name__ == "__main__":
     parser.add_argument("--output_dir", type=str, required=True, help="Directory for saving checkpoints")
     parser.add_argument("--hub_model_id", type=str, required=True, help="Huggingface Model ID")
     parser.add_argument("--use_lora", type=bool, help="Lauching lora finetuning")
+    parser.add_argument("--use_4_bit", type=bool, help="Launching quantization for training")
 
     args = parser.parse_args()
 
-    main(args.data_path, args.output_dir, args.hub_model_id, args.use_lora)
+    main(args.data_path, args.output_dir, args.hub_model_id, args.use_lora, args.use_4_bit)

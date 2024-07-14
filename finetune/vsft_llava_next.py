@@ -2,6 +2,8 @@ import torch
 import argparse
 from datasets import load_dataset, load_from_disk
 from transformers import TrainingArguments, Trainer
+from transformers import BitsAndBytesConfig
+from peft import LoraConfig, get_peft_model
 from transformers import LlavaNextProcessor, LlavaNextForConditionalGeneration
 
 print("Visual Instruction Tuning for LLaVa-Next is Starting!")
@@ -38,7 +40,7 @@ class DataCollator:
 
         return batch
 
-def main(data_path, output_dir, hub_model_id):
+def main(data_path, output_dir, hub_model_id, use_lora=False, use_4_bit=False):
 
     ## Load processor
 
@@ -48,11 +50,29 @@ def main(data_path, output_dir, hub_model_id):
     
     ## Load model
 
-    model = LlavaNextForConditionalGeneration.from_pretrained(
-        "llava-hf/llava-v1.6-vicuna-7b-hf",
-        torch_dtype=torch.float16, 
-        low_cpu_mem_usage=True,
-    )
+    # USE_4_BIT
+    if use_4_bit:
+        bnb_config = BitsAndBytesConfig(
+            load_in_4bit=True,
+            bnb_4bit_quant_type="nf4",
+            bnb_4bit_compute_dtype=torch.bfloat16,
+            bnb_4bit_use_double_quant=True,
+            bnb_4bit_quant_storage=torch.bfloat16,
+            llm_int8_skip_modules=["lm_head", "embed_tokens"],
+        )
+
+        model = LlavaNextForConditionalGeneration.from_pretrained(
+            "llava-hf/llava-v1.6-vicuna-7b-hf",
+            torch_dtype=torch.float16, 
+            quantization_config=bnb_config,
+            low_cpu_mem_usage=True,
+        )
+    else:
+        model = LlavaNextForConditionalGeneration.from_pretrained(
+            "llava-hf/llava-v1.6-vicuna-7b-hf",
+            torch_dtype=torch.float16, 
+            low_cpu_mem_usage=True,
+        )
 
     ## Load data
 
@@ -110,7 +130,8 @@ if __name__ == "__main__":
     parser.add_argument("--data_path", type=str, required=True, help="Path to the dataset")
     parser.add_argument("--output_dir", type=str, required=True, help="Directory for saving checkpoints")
     parser.add_argument("--hub_model_id", type=str, required=True, help="Huggingface Model ID")
+    parser.add_argument("--use_4_bit", type=bool, help="Launching quantization for training")
 
     args = parser.parse_args()
 
-    main(args.data_path, args.output_dir, args.hub_model_id)
+    main(args.data_path, args.output_dir, args.hub_model_id, args.use_lora, args.use_4_bit)
