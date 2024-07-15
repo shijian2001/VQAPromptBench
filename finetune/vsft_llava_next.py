@@ -1,12 +1,14 @@
 import torch
 import argparse
-from datasets import load_dataset, load_from_disk
+from datasets import load_dataset
 from transformers import TrainingArguments, Trainer
 from transformers import BitsAndBytesConfig
 from peft import LoraConfig, get_peft_model
 from transformers import LlavaNextProcessor, LlavaNextForConditionalGeneration
 
+print("===================================================================================")
 print("Visual Instruction Tuning for LLaVa-Next is Starting!")
+print("===================================================================================")
 
 ## Data Processor
 
@@ -40,7 +42,7 @@ class DataCollator:
 
         return batch
 
-def main(data_path, output_dir, hub_model_id, use_lora=False, use_4_bit=False):
+def main(data_path, output_dir, hub_model_id="", use_lora=False, use_4_bit=False):
 
     ## Load processor
 
@@ -63,24 +65,20 @@ def main(data_path, output_dir, hub_model_id, use_lora=False, use_4_bit=False):
 
         model = LlavaNextForConditionalGeneration.from_pretrained(
             "llava-hf/llava-v1.6-vicuna-7b-hf",
-            torch_dtype=torch.float16, 
+            torch_dtype=torch.bfloat16, 
             quantization_config=bnb_config,
             low_cpu_mem_usage=True,
         )
     else:
         model = LlavaNextForConditionalGeneration.from_pretrained(
             "llava-hf/llava-v1.6-vicuna-7b-hf",
-            torch_dtype=torch.float16, 
+            torch_dtype=torch.bfloat16, 
             low_cpu_mem_usage=True,
         )
 
     ## Load data
 
     dataset = load_dataset(data_path)
-
-    # should be modifed
-    # dataset = load_from_disk(data_path)
-
     train_dataset, eval_dataset = dataset["train"], dataset["test"]
 
     ## Data collator
@@ -100,14 +98,16 @@ def main(data_path, output_dir, hub_model_id, use_lora=False, use_4_bit=False):
         weight_decay=0.,
         logging_steps=1,
         output_dir=output_dir,
+        load_best_model_at_end=True,
         save_strategy="steps",
-        save_steps=50000,
-        save_total_limit=1,
+        save_steps=250,
+        save_total_limit=2,
         eval_strategy="steps",
         eval_steps=250,
-        fp16=True,
-        hub_model_id=f"shijianS01/llava-next-7b-{hub_model_id}",
-        # hub_model_id="shijianS01/llava-next-7b-multi-templates-vsft",
+        metric_for_best_model="eval_loss",
+        greater_is_better=False,
+        bf16=True,
+        # hub_model_id=f"shijianS01/llava-next-7b-{hub_model_id}",
         remove_unused_columns=False,
         report_to="none", # wandb or none
         deepspeed="zero_stage3_config.json",
@@ -122,14 +122,19 @@ def main(data_path, output_dir, hub_model_id, use_lora=False, use_4_bit=False):
     )
 
     trainer.train()
+    print("Best checkpoint:",trainer.state.best_model_checkpoint)
 
-    trainer.push_to_hub()
+    # Save best lora
+    best_lora_path=f"{output_dir}/best_lora"
+    trainer.model.save_pretrained(best_lora_path)
+
+    # trainer.push_to_hub()
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("--data_path", type=str, required=True, help="Path to the dataset")
     parser.add_argument("--output_dir", type=str, required=True, help="Directory for saving checkpoints")
-    parser.add_argument("--hub_model_id", type=str, required=True, help="Huggingface Model ID")
+    parser.add_argument("--hub_model_id", type=str, help="Huggingface Model ID")
     parser.add_argument("--use_4_bit", type=bool, help="Launching quantization for training")
 
     args = parser.parse_args()

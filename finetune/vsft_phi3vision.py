@@ -1,12 +1,14 @@
 import torch
 import argparse
-from datasets import load_dataset, load_from_disk
+from datasets import load_dataset
 from transformers import TrainingArguments, Trainer
 from transformers import BitsAndBytesConfig
 from peft import LoraConfig, get_peft_model
 from transformers import AutoProcessor, AutoModelForCausalLM
 
+print("===================================================================================")
 print("Visual Instruction Tuning for Phi-3-Vision is Starting!")
+print("===================================================================================")
 
 ## Data Processor
 
@@ -34,7 +36,7 @@ class DataCollator:
         return batch
 
 
-def main(data_path, output_dir, hub_model_id, use_lora=False, use_4_bit=False):
+def main(data_path, output_dir, hub_model_id="", use_lora=False, use_4_bit=False):
 
     ## Load processor
 
@@ -94,9 +96,6 @@ def main(data_path, output_dir, hub_model_id, use_lora=False, use_4_bit=False):
 
     dataset = load_dataset(data_path)
 
-    # should be modifed
-    # dataset = load_from_disk(data_path)
-
     train_dataset, eval_dataset = dataset["train"], dataset["test"]
 
     ## Data collator
@@ -109,21 +108,23 @@ def main(data_path, output_dir, hub_model_id, use_lora=False, use_4_bit=False):
         num_train_epochs=1,
         per_device_train_batch_size=1, # Phi-3-V only supports batch_size == 1
         per_device_eval_batch_size=1, # Phi-3-V only supports batch_size == 1
-        gradient_accumulation_steps=128, # modified along with above
+        gradient_accumulation_steps=256, # modified along with above
         warmup_ratio=0.03,
         lr_scheduler_type="cosine",
         learning_rate=2e-5,
         weight_decay=0.,
         logging_steps=1,
         output_dir=output_dir,
+        load_best_model_at_end=True,
         save_strategy="steps",
-        save_steps=50000,
-        save_total_limit=1,
+        save_steps=250,
+        save_total_limit=2,
         eval_strategy="steps",
         eval_steps=250,
-        fp16=True,
-        hub_model_id = f"shijianS01/phi-3-vision-{hub_model_id}",
-        # hub_model_id="shijianS01/phi-3-vision-multi-templates-vsft",
+        metric_for_best_model="eval_loss",
+        greater_is_better=False,
+        bf16=True,
+        # hub_model_id = f"shijianS01/phi-3-vision-{hub_model_id}",
         remove_unused_columns=False,
         report_to="none", # wandb or none
         deepspeed="zero_stage3_config.json",
@@ -138,6 +139,11 @@ def main(data_path, output_dir, hub_model_id, use_lora=False, use_4_bit=False):
     )
 
     trainer.train()
+    print("Best checkpoint:",trainer.state.best_model_checkpoint)
+
+    # Save best lora
+    best_lora_path=f"{output_dir}/best_lora"
+    trainer.model.save_pretrained(best_lora_path)
 
     # trainer.push_to_hub()
 
@@ -146,7 +152,7 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("--data_path", type=str, required=True, help="Path to the dataset")
     parser.add_argument("--output_dir", type=str, required=True, help="Directory for saving checkpoints")
-    parser.add_argument("--hub_model_id", type=str, required=True, help="Huggingface Model ID")
+    parser.add_argument("--hub_model_id", type=str, help="Huggingface Model ID")
     parser.add_argument("--use_lora", type=bool, help="Lauching lora finetuning")
     parser.add_argument("--use_4_bit", type=bool, help="Launching quantization for training")
 
