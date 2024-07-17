@@ -62,14 +62,15 @@ class QAModel(Model):
 			choice_format='letter',
 			enable_choice_search: bool = False,
 			cache_path: str = None,
-			enable_interpretation: bool = False
-
+			enable_interpretation: bool = False,
+			use_lora: bool = False
 	):
 		self.model = None
 		self.model_name = model_name
 		self.prompt_func = prompt_func
 		self.format = choice_format
 		self.cache_path = cache_path
+		self.use_lora = use_lora
 
 		if self.cache_path is not None:
 			print(f"[IMPORTANT] model cache is enabled, cache path: {cache_path}")

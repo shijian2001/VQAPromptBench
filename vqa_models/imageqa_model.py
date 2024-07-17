@@ -69,10 +69,11 @@ class ImageQAModel(QAModel):
 			choice_format='letter',
 			enable_choice_search: bool = False,
 			cache_path: str = None,
-			enable_interpretation: bool = False
+			enable_interpretation: bool = False,
+			use_lora: bool = False
 
 	):
-		super().__init__(model_name, prompt_func, choice_format, enable_choice_search, cache_path, enable_interpretation)
+		super().__init__(model_name, prompt_func, choice_format, enable_choice_search, cache_path, enable_interpretation, use_lora)
 
 		if isinstance(torch_device, str):
 			torch_device = torch.device(torch_device)
@@ -86,7 +87,7 @@ class ImageQAModel(QAModel):
 			print(f"Loading {model_name}...")
 			class_name, ckpt = imageqa_models[model_name]
 			self.model_precision = precision
-			self.model = eval(class_name)(ckpt, torch_device, self.model_precision)
+			self.model = eval(class_name)(ckpt, torch_device, self.model_precision, self.use_lora)
 			print(f"Finish loading {model_name}")
 		else:
 			print(f"Using provided model...")
@@ -106,7 +107,7 @@ class ImageQAModel(QAModel):
 	# 	return explanation
 
 class BLIP2(QAModelInstance):
-	def __init__(self, ckpt="Salesforce/blip2-flan-t5-xxl", torch_device=torch.device("cuda"), model_precision=torch.float32):
+	def __init__(self, ckpt="Salesforce/blip2-flan-t5-xxl", torch_device=torch.device("cuda"), model_precision=torch.float32, use_lora=False):
 		from transformers import Blip2Processor, Blip2ForConditionalGeneration
 		self.processor = Blip2Processor.from_pretrained(ckpt, device_map=torch_device)
 		self.model = Blip2ForConditionalGeneration.from_pretrained(
@@ -126,7 +127,7 @@ class BLIP2(QAModelInstance):
 
 
 class InstructBlip(QAModelInstance):
-	def __init__(self, ckpt="Salesforce/instructblip-flan-t5-xxl", torch_device=torch.device("cuda"), model_precision=torch.float32):
+	def __init__(self, ckpt="Salesforce/instructblip-flan-t5-xxl", torch_device=torch.device("cuda"), model_precision=torch.float32, use_lora=False):
 		from transformers import InstructBlipProcessor, InstructBlipForConditionalGeneration, InstructBlipConfig, AutoModelForVision2Seq
 		from accelerate import infer_auto_device_map, init_empty_weights
 		if ckpt == "Salesforce/instructblip-vicuna-34b": # temp changed
@@ -161,7 +162,7 @@ class InstructBlip(QAModelInstance):
 
 
 class LLaVA(QAModelInstance):
-	def __init__(self, ckpt="llava-hf/llava-1.5-7b-hf", torch_device=torch.device("cuda"), model_precision=torch.float32):
+	def __init__(self, ckpt="llava-hf/llava-1.5-7b-hf", torch_device=torch.device("cuda"), model_precision=torch.float32, use_lora=False):
 		if ckpt == "llava-hf/llava-v1.6-34b-hf":  # run model on multi gpus
 			from transformers import LlavaNextForConditionalGeneration, LlavaNextProcessor
 			model = LlavaNextForConditionalGeneration.from_pretrained(ckpt,
@@ -206,7 +207,7 @@ class LLaVA(QAModelInstance):
 
 
 class QwenVL(QAModelInstance):
-	def __init__(self, ckpt="Qwen/Qwen-VL", torch_device=torch.device("cuda"), model_precision=torch.float32):
+	def __init__(self, ckpt="Qwen/Qwen-VL", torch_device=torch.device("cuda"), model_precision=torch.float32, use_lora=False):
 		from transformers import AutoModelForCausalLM, AutoTokenizer
 		self.tokenizer = AutoTokenizer.from_pretrained(ckpt, trust_remote_code=True)
 		if model_precision == torch.float32:
@@ -258,7 +259,7 @@ class QwenVL(QAModelInstance):
 
 
 class QwenVLChat(QAModelInstance):
-	def __init__(self, ckpt="Qwen/Qwen-VL-Chat", torch_device=torch.device("cuda"), model_precision=torch.float32):
+	def __init__(self, ckpt="Qwen/Qwen-VL-Chat", torch_device=torch.device("cuda"), model_precision=torch.float32, use_lora=False):
 		from transformers import AutoModelForCausalLM, AutoTokenizer
 		from transformers.generation import GenerationConfig
 
@@ -392,7 +393,7 @@ def load_image(image_file, input_size=448, max_num=6):
 
 
 class InternVLChat(QAModelInstance):
-	def __init__(self, ckpt="OpenGVLab/InternVL-Chat-V1-5", torch_device=torch.device("cuda"), model_precision=torch.float32):
+	def __init__(self, ckpt="OpenGVLab/InternVL-Chat-V1-5", torch_device=torch.device("cuda"), model_precision=torch.float32, use_lora=False):
 		from transformers import AutoTokenizer, AutoModel
 		# Required a 80GB A100. current not support multi gpus now, internvl's bug. 
 		self.model = AutoModel.from_pretrained(
@@ -423,7 +424,7 @@ class InternVLChat(QAModelInstance):
 		return response
 
 class DeepSeekVLChat(QAModelInstance):
-	def __init__(self, ckpt="deepseek-ai/deepseek-vl-7b-chat", torch_device=torch.device("cuda"), model_precision=torch.bfloat16):
+	def __init__(self, ckpt="deepseek-ai/deepseek-vl-7b-chat", torch_device=torch.device("cuda"), model_precision=torch.bfloat16, use_lora=False):
 		from transformers import AutoModelForCausalLM
 		from deepseek_vl.models import VLChatProcessor, MultiModalityCausalLM
 
@@ -487,7 +488,7 @@ class DeepSeekVLChat(QAModelInstance):
 		return answer
 
 class IDEFICS2(QAModelInstance):
-	def __init__(self, ckpt="HuggingFaceM4/idefics2-8b", torch_device=torch.device("cuda"), model_precision=torch.float16):
+	def __init__(self, ckpt="HuggingFaceM4/idefics2-8b", torch_device=torch.device("cuda"), model_precision=torch.float16, use_lora=False):
 		from transformers import AutoProcessor, AutoModelForVision2Seq
 
 		self.processor = AutoProcessor.from_pretrained(ckpt)
@@ -498,6 +499,21 @@ class IDEFICS2(QAModelInstance):
 			device_map="auto"
 		)
 		# .to(torch_device)
+
+		if use_lora:
+			print("[Lauching Lora] Lora is merging...")
+			from peft import PeftModel, LoraConfig
+			lora_config = LoraConfig(
+				r=4,
+				lora_alpha=4,
+				lora_dropout=0.1,
+				bias="none",
+				target_modules=["q_proj", "k_proj", "v_proj"],
+				task_type="CAUSAL_LM",
+				use_dora=False
+			)
+			# Use absolute path; need change
+			self.model = PeftModel.from_pretrained(self.model, model_id="/linxindisk/VQAPromptBench/logs/multi_prompt_finetune/idefics2-6k-templates/best_lora", config=lora_config)
 	
 	def _extract_assistant_content(self, text: str):
 		parts = text.split('\nAssistant:', 1)
@@ -541,7 +557,7 @@ class IDEFICS2(QAModelInstance):
 		return self._extract_assistant_content(generated_texts[0])
 
 class Phi3Vision(QAModelInstance):
-	def __init__(self, ckpt="microsoft/Phi-3-vision-128k-instruct", torch_device=torch.device("cuda"), model_precision=torch.bfloat16):
+	def __init__(self, ckpt="microsoft/Phi-3-vision-128k-instruct", torch_device=torch.device("cuda"), model_precision=torch.bfloat16, use_lora=False):
 		from transformers import AutoModelForCausalLM, AutoProcessor
 
 		self.device = torch_device
