@@ -41,7 +41,8 @@ def experiment(
 
     # load vqa model
     # pass default prompt template
-    vqa_model = ImageQAModel(vqa_model_name, prompt_func=detailed_imageqa_prompt, enable_choice_search=True, torch_device=0, use_lora=True)
+    # pass use_lora=True to launch [Lora Inference]
+    vqa_model = ImageQAModel(vqa_model_name, prompt_func=detailed_imageqa_prompt, enable_choice_search=True, torch_device=1, use_lora=False)
     print("===============================================================")
     print(f"{vqa_model_name} evaluation started:")
     print("===============================================================")
@@ -72,7 +73,7 @@ def experiment(
             print(f"Overall Acc for the prompt {i+1}: {np.mean(logs[vqa_model_name][benchmark_name][f'prompt_{i+1}'])}")
 
     # save logs to disk
-    with open(f'./logs/eval_logs/6k_templates_finetuned_{vqa_model_name}_eval.json', "w", encoding='utf-8') as f:
+    with open(f'./logs/compare_finetune/origin_{vqa_model_name}_eval.json', "w", encoding='utf-8') as f:
         json.dump(logs, f, ensure_ascii=False, indent=4)
 
     print(f"{vqa_model_name} evaluations have saved successfully!")
@@ -80,6 +81,6 @@ def experiment(
 
 experiment(
     vqa_model_name="idefics2-8b",
-    benchmark_names=["blink", "mmbench", "seedbench1"],
+    benchmark_names=["seedbench1", "blink"],
     prompt_templates=json.load(open("./prompt_factory/test_vsft_lora.json", "r"))["MultiChoiceImageQa"]
 )

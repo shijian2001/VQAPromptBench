@@ -9,6 +9,26 @@
         "Based on what you see in the image, answer the question: {question}",
         "Considering the image, answer the following question:\n{question}",
         "Referring to the image, answer the following question:\n{question}",
-        "From the given image, please give your answer to the question: {question}"
+        "From the given image, please give your answer to the question: {question}",
+        "Using the image as a reference, respond to the question: {question}",
+        "Taking the image into account, answer the question: {question}",
+        "Referring to the details in the image, answer the question: {question}",
+        "By analyzing the image, please respond to the question: {question}",
+        "With the image in mind, answer the following question: {question}",
+        "Based on the details in the image, answer the question: {question}",
+        "Accroding to the image provided, please answer the question: {question}",
+        "Considering the information in the image, answer the question: {question}",
+        "Considering the image provided, answer this question: {question}",
+        "Observe the image and answer the question: {question}",
+        "Look at the image and provide an answer to this question: {question}",
+        "Based on your observation of the image, answer the question: {question}",
+        "Analyze the visual content of the image and answer this question: {question}",
+        "From the details in the image, determine the answer to this question: {question}",
+        "Looking at the image, please answer the question: {question}",
+        "Examine the image and answer: {question}",
+        "In light of the image, please respond to the question: {question}",
+        "With reference to the visual content of the image provided, please respond to: {question}",
+        "Scrutinize the image to answer the following question: {question}",
+        "Considering what you see in the image, please answer the question: {question}"
     ]
 }

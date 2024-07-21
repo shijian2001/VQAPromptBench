@@ -10,23 +10,58 @@
 
 from typing import List
 from datasets import load_from_disk, load_dataset, Dataset
+from datasets import DatasetDict
 from tqdm import tqdm
 from typing import *
 import json
 import copy
+import random
 
 class BaseGenerator():
-    def __init__(self, dataset_path: str, templates: List[str]):
-        # self.dataset = load_dataset(dataset_path)
-        self.dataset = load_from_disk(dataset_path)
+    def __init__(self, dataset_path: str, templates: List[str], split="None"):
         self.templates = templates
+
+        # special case
+        original_templates = ["{question}" for _ in range(len(self.templates)-2)]
+        self.templates = original_templates + self.templates
+        print(self.templates)
+
+        if split != "None":
+            self.dataset = load_dataset(dataset_path, split=split)
+        else:
+            self.dataset = load_dataset(dataset_path)
     
     def generator(self):
         "(Abstract method) abstract data generator method"
 
+class DataRichPromptRandomGenerator(BaseGenerator):
+    def __init__(self, dataset_path: str, templates: List[str], split="None"):
+        super().__init__(dataset_path, templates, split)
+
+    def generator(self):
+        for data in tqdm(self.dataset):
+            vsft_data = copy.deepcopy(data)
+
+            vsft_data["images"] = data["images"][0] # important for calling the image decoding feature
+
+            messages = vsft_data["messages"]
+
+            for conversation in messages:
+                if conversation["role"] == "user":
+                    origin_content = conversation["content"]
+                    for item in origin_content:
+                        if item["type"] == "text":
+                            template = random.choice(self.templates)
+                            item["text"] = template.format(question=item["text"])
+            
+            yield vsft_data
+
+    
+
+
 class DataRichPromptLessGenerator(BaseGenerator):
-    def __init__(self, dataset_path: str, templates: List[str]):
-        super().__init__(dataset_path, templates)
+    def __init__(self, dataset_path: str, templates: List[str], split="None"):
+        super().__init__(dataset_path, templates, split)
 
     def generator(self):
         for data in tqdm(self.dataset):
@@ -126,14 +161,33 @@ class PromptRichDataLessGenerator(BaseGenerator):
                 yield vsft_data
 
 if __name__ == "__main__":
-    generator = PromptRichDataLessGenerator(
-        dataset_path="../subset/meta_mm_vsft",
-        templates=json.load(open("../prompt_factory/prompt_pool.json"))["MultiChoiceImageQa"]
+    print("Train Generator")
+    train_generator = DataRichPromptRandomGenerator(
+        dataset_path="HuggingFaceH4/llava-instruct-mix-vsft",
+        templates=json.load(open("../prompt_factory/vsft_prompts.json"))["MultiQATemplates"],
+        split = "train"
     ).generator
-    gen_dataset = Dataset.from_generator(generator)
-    gen_dataset = gen_dataset.shuffle(42)
-    # gen_dataset.save_to_disk('../subset/gen_llava_instruct_mix_vsft')
-    print(len(gen_dataset))
-    dataset = gen_dataset.train_test_split(test_size=0.1)
-    print(dataset)
-    # dataset.push_to_hub("shijianS01/6k-templates-mm-vsft-300k")
+
+    print("Test Generator")
+    test_generator = DataRichPromptRandomGenerator(
+        dataset_path="HuggingFaceH4/llava-instruct-mix-vsft",
+        templates=json.load(open("../prompt_factory/vsft_prompts.json"))["MultiQATemplates"],
+        split = "test"
+    ).generator
+
+    test_dataset = Dataset.from_generator(test_generator)
+    print(test_dataset[0]["images"])
+
+    train_dataset = Dataset.from_generator(train_generator)
+
+    # Combine into a DatasetDict
+    gen_dataset = DatasetDict({
+        "train": train_dataset,
+        "test": test_dataset
+    })
+
+    # gen_dataset = gen_dataset.shuffle(42)
+    # gen_dataset.save_to_disk('../subset/random_prompts_llava__vsft')
+    # dataset = gen_dataset.train_test_split(test_size=0.1)
+    print(gen_dataset)
+    gen_dataset.push_to_hub("shijianS01/mix-random-templates-llava-vsft-259k")
