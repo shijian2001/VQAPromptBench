@@ -17,6 +17,7 @@ LLaVATemplate = "{% for message in messages %}{{message['role'].upper()}}{% if m
 class DataCollator:
     def __init__(self, processor):
         self.processor = processor
+        self.processor.tokenizer.model_max_length = 512
 
     def _apply_chat_template(self, template, messages, add_generation_prompt=False):
         from jinja2 import Template
@@ -34,7 +35,7 @@ class DataCollator:
             texts.append(text.strip())
             images.append(image)
 
-        batch = self.processor(text=texts, images=images, return_tensors="pt", padding=True)
+        batch = self.processor(text=texts, images=images, return_tensors="pt", truncation=True, padding=True) # lauch truncated
 
         labels = batch["input_ids"].clone()
         labels[labels == self.processor.tokenizer.pad_token_id] = -100
@@ -107,9 +108,9 @@ def main(data_path, output_dir, hub_model_id="", use_lora=False, use_4_bit=False
 
     training_args = TrainingArguments(
         num_train_epochs=1,
-        per_device_train_batch_size=2,
-        per_device_eval_batch_size=2,
-        gradient_accumulation_steps=64,
+        per_device_train_batch_size=1,
+        per_device_eval_batch_size=1,
+        gradient_accumulation_steps=128,
         warmup_ratio=0.03,
         lr_scheduler_type="cosine",
         learning_rate=2e-5,
