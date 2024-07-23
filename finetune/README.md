@@ -15,7 +15,9 @@ bash vsft.sh
 ```
 You can also run the following command separately
 ```
-# If you have 8 GPUs
-# You can modify the output_dir
-torchrun --standalone --nnodes=1 --nproc_per_node=8 vsft_llava_next.py --data_path "shijianS01/6k-templates-mm-vsft-300k" --hub_model_id "6k-templates" --output_dir "./output"
+# mix-random
+torchrun --standalone --nnodes=1 --nproc_per_node=1 vsft_llava.py --data_path "shijianS01/mix-random-templates-llava-vsft-259k" --hub_model_id "mix-random-templates" --output_dir "../logs/test_output/test_mix" --use_lora=True --use_4_bit=True
+
+# random
+torchrun --standalone --nnodes=1 --nproc_per_node=1 vsft_llava.py --data_path "shijianS01/random-templates-llava-vsft-259k" --hub_model_id "random-templates" --output_dir "../logs/test_output/test_random" --use_lora=True --use_4_bit=True
 ```

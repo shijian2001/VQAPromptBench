@@ -129,7 +129,7 @@ def main(data_path, output_dir, hub_model_id="", use_lora=False, use_4_bit=False
         # hub_model_id=f"shijianS01/llava-7b-{hub_model_id}",
         remove_unused_columns=False,
         run_name=f"llava-7b-lora-{hub_model_id}",
-        report_to="wandb", # wandb or none
+        report_to="none", # wandb or none
         deepspeed="zero_stage3_config.json",
     )
 
