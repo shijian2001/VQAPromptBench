@@ -163,6 +163,7 @@ class InstructBlip(QAModelInstance):
 
 class LLaVA(QAModelInstance):
 	def __init__(self, ckpt="llava-hf/llava-1.5-7b-hf", torch_device=torch.device("cuda"), model_precision=torch.float32, use_lora=False):
+
 		if ckpt == "llava-hf/llava-v1.6-34b-hf":  # run model on multi gpus
 			from transformers import LlavaNextForConditionalGeneration, LlavaNextProcessor
 			model = LlavaNextForConditionalGeneration.from_pretrained(ckpt,
@@ -187,8 +188,28 @@ class LLaVA(QAModelInstance):
 				ckpt,
 				torch_dtype=model_precision,
 				low_cpu_mem_usage=True,
-			).to(torch_device).eval()
-			self.processor = AutoProcessor.from_pretrained(ckpt)
+				device_map="auto"
+			).eval()
+			self.processor = AutoProcessor.from_pretrained(ckpt, device_map="auto")
+		
+		if use_lora:
+			print("[Lauching Lora] Lora is merging...")
+			from peft import PeftModel, LoraConfig
+			lora_config = LoraConfig(
+				r=4,
+				lora_alpha=4,
+				lora_dropout=0.1,
+				bias="none",
+				target_modules=["q_proj", "k_proj", "v_proj"],
+				task_type="CAUSAL_LM",
+				use_dora=False
+			)
+			# Use absolute path; need change
+			self.model = PeftModel.from_pretrained(
+				self.model, 
+				model_id="/linxindisk/VQAPromptBench/logs/reasoning-finetuning/259k_llava_30_templates_without_reasoning/best_model", 
+				config=lora_config
+			)
 
 	def qa(self, image, prompt):
 		if isinstance(image, str):
@@ -204,6 +225,24 @@ class LLaVA(QAModelInstance):
 		answer = self.processor.decode(out[0], skip_special_tokens=True).split("ASSISTANT:")[-1].strip()
 
 		return answer
+	
+	def batch_qa(self, images, prompts):
+		if isinstance(images[0], str):
+			images = [Image.open(image).convert('RGB') for image in images]
+
+		prompts = ["USER: <image>\n" + prompt + "\nASSISTANT:" for prompt in prompts]
+
+		if isinstance(self.model, torch.nn.DataParallel):
+			# padding must be setted to True for batch generation
+			inputs = self.processor(prompts, images, return_tensors='pt', padding=True).to(next(self.model.parameters()).device)
+			out = self.model.module.generate(**inputs, max_new_tokens=200, do_sample=False)
+		else:
+			inputs = self.processor(prompts, images, return_tensors='pt', padding=True).to(self.model.device)
+			out = self.model.generate(**inputs, max_new_tokens=200, do_sample=False)
+		answers = self.processor.batch_decode(out, skip_special_tokens=True)
+		answers = [answer.split("ASSISTANT:")[-1].strip() for answer in answers]
+
+		return answers
 
 
 class QwenVL(QAModelInstance):

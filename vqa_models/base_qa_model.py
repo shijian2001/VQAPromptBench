@@ -52,6 +52,9 @@ class Model:
 class QAModelInstance:
 	def qa(self, data, prompt):
 		"(Abstract method) abstract QA method"
+	
+	def batch_qa(self, data, prompt):
+		"(Abstract method) abstract batch QA method"
 
 
 class QAModel(Model):
@@ -97,15 +100,21 @@ class QAModel(Model):
 		""" abstract method """
 
 	@torch.no_grad()
-	def _qa(self, data, prompt):
+	def _qa(self, data, prompt, batched=False):
 		if self.cache_path is None:
-			return self.model.qa(data, prompt)
+			if batched:
+				return self.model.batch_qa(data, prompt)
+			else:
+				return self.model.qa(data, prompt)
 		else:
 			with diskcache.Cache(self.cache_path, size_limit=10 * (2 ** 30)) as cache:
 				key = json.dumps([self._data_to_str(data), prompt])
 				response = cache.get(key, None)
 				if response is None:
-					response = self.model.qa(data, prompt)
+					if batched:
+						response = self.model.batch_qa(data, prompt)
+					else:
+						response = self.model.qa(data, prompt)
 					cache.set(key, response)
 				return response
 
@@ -130,6 +139,27 @@ class QAModel(Model):
 				free_form_answer = self._qa(data, prompt).strip()
 		return None, None
 
+	def _limit_answer(self, free_form_answer, choices, prefix1, prefix2, options):
+		# Limit the answer to the choices
+		if free_form_answer in choices:
+			multiple_choice_answer = free_form_answer
+		elif free_form_answer in options:
+			multiple_choice_answer = choices[options.index(free_form_answer)]
+		elif free_form_answer in prefix1:
+			multiple_choice_answer = choices[prefix1.index(free_form_answer)]
+		elif free_form_answer in prefix2:
+			multiple_choice_answer = choices[prefix2.index(free_form_answer)]
+		elif self.enable_choice_search:
+			multiple_choice_answer = self.choice_search(free_form_answer, choices)
+		else:
+			multiple_choice_answer = ""
+			for to_check in [choices, options, prefix1, prefix2]:
+				idx = check_contain(free_form_answer, to_check)
+				if idx != -1:
+					multiple_choice_answer = choices[idx]
+					break
+		return multiple_choice_answer
+
 	# Add optional para: prompt_func
 	@torch.no_grad()
 	def multiple_choice_qa(self, data, question, context, choices, prompt_func=None, answer=None):
@@ -150,23 +180,7 @@ class QAModel(Model):
 				print("[Error] Fail to get explanation")
 
 		# Limit the answer to the choices
-		if free_form_answer in choices:
-			multiple_choice_answer = free_form_answer
-		elif free_form_answer in options:
-			multiple_choice_answer = choices[options.index(free_form_answer)]
-		elif free_form_answer in prefix1:
-			multiple_choice_answer = choices[prefix1.index(free_form_answer)]
-		elif free_form_answer in prefix2:
-			multiple_choice_answer = choices[prefix2.index(free_form_answer)]
-		elif self.enable_choice_search:
-			multiple_choice_answer = self.choice_search(free_form_answer, choices)
-		else:
-			multiple_choice_answer = ""
-			for to_check in [choices, options, prefix1, prefix2]:
-				idx = check_contain(free_form_answer, to_check)
-				if idx != -1:
-					multiple_choice_answer = choices[idx]
-					break
+		multiple_choice_answer = self._limit_answer(free_form_answer, choices, prefix1, prefix2, options)
 
 		# result = {
 		# 	"free_form_answer"      : f"{free_form_answer}\nExplanation: {explanation}" if self.enable_interpretation else free_form_answer,
@@ -183,6 +197,42 @@ class QAModel(Model):
 		if answer is not None:
 			result["accuracy"] = int(answer == multiple_choice_answer)
 		return result
+	
+	@torch.no_grad()
+	def batch_multiple_choice_qa(self, images, questions, contexts, choices, prompt_func=None, answers=None):
+		# Get VQA model's answer
+		prefixs1, prefixs2, options = map(list, zip(*[make_options(choice, self.format) for choice in choices]))
+		prompts = [
+			prompt_func(question, context, option) if prompt_func else self.prompt_func(question, context, option) 
+			for question, context, option in zip(questions, contexts, options)
+		]
+		free_form_answers = self._qa(images, prompts, batched=True)
+		free_form_answers = [free_form_answer.strip() for free_form_answer in free_form_answers]
+
+		# disable explaination
+
+		# Limit the answer to the choices
+		multiple_choice_answers = [
+			self._limit_answer(free_form_answer, choice, prefix1, prefix2, option)
+			for free_form_answer, choice, prefix1, prefix2, option
+			in zip(free_form_answers, choices, prefixs1, prefixs2, options)
+		]
+
+		results = [
+			{
+				"free_form_answer"      : free_form_answer,
+				"multiple_choice_answer": multiple_choice_answer,
+				"choices"               : choice.copy(),
+			}
+			for free_form_answer, multiple_choice_answer, choice
+			in zip(free_form_answers, multiple_choice_answers, choices)
+		]
+
+		if answers is not None:
+			for result, answer in zip(results, answers):
+				result["accuracy"] = int(answer == result["multiple_choice_answer"])
+
+		return results
 
 	# Add optional para: prompt_func
 	@torch.no_grad()
@@ -196,3 +246,23 @@ class QAModel(Model):
 			accuracy += results[i]["accuracy"]
 		results["accuracy"] = accuracy / n_trials
 		return results
+
+	@torch.no_grad()
+	def batch_multiple_choice_qa_random_ordering(self, images, questions, contexts, choices, prompt_func=None, answers=None, n_trials=3):
+		assert len(images) == len(questions) == len(contexts) == len(choices), "All lengths must the the same"
+		batch_size = len(questions)
+		batch_results = [{} for _ in range(batch_size)]
+		for i in range(n_trials):
+			choices_i = choices.copy()
+			for choice_i in choices_i:
+				random.shuffle(choice_i)
+			batch_results_i = self.batch_multiple_choice_qa(images, questions, contexts, choices_i, prompt_func, answers)
+			for single_results, single_results_i in zip(batch_results, batch_results_i):
+				single_results[i] = single_results_i
+	
+		for single_results in batch_results:
+			single_results["accuracy"] = np.mean([result["accuracy"] for result in single_results.values()])
+		
+		return batch_results
+		
+

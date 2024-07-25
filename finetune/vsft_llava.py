@@ -109,8 +109,8 @@ def main(data_path, output_dir, hub_model_id="", use_lora=False, use_4_bit=False
     training_args = TrainingArguments(
         num_train_epochs=1,
         per_device_train_batch_size=1,
-        per_device_eval_batch_size=1,
-        gradient_accumulation_steps=128,
+        per_device_eval_batch_size=4,
+        gradient_accumulation_steps=8, # 16 A100 40G
         warmup_ratio=0.03,
         lr_scheduler_type="cosine",
         learning_rate=2e-5,
@@ -129,7 +129,7 @@ def main(data_path, output_dir, hub_model_id="", use_lora=False, use_4_bit=False
         # hub_model_id=f"shijianS01/llava-7b-{hub_model_id}",
         remove_unused_columns=False,
         run_name=f"llava-7b-lora-{hub_model_id}",
-        report_to="none", # wandb or none
+        report_to="wandb", # wandb or none
         deepspeed="zero_stage3_config.json",
     )
 

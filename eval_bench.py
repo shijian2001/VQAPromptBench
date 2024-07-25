@@ -12,7 +12,7 @@ def build_prompt_func(prompt_template: str):
         prompt = prompt_template.format(
             question=question,
             context=context,
-            choices=choices
+            choices=" ".join(choices)
         )
         return prompt
     return imageqa_prompt
@@ -42,7 +42,7 @@ def experiment(
     # load vqa model
     # pass default prompt template
     # pass use_lora=True to launch [Lora Inference]
-    vqa_model = ImageQAModel(vqa_model_name, prompt_func=detailed_imageqa_prompt, enable_choice_search=True, torch_device=1, use_lora=False)
+    vqa_model = ImageQAModel(vqa_model_name, prompt_func=detailed_imageqa_prompt, enable_choice_search=True, torch_device=1, use_lora=True)
     print("===============================================================")
     print(f"{vqa_model_name} evaluation started:")
     print("===============================================================")
@@ -60,27 +60,45 @@ def experiment(
             print(f"Evaluated on prompt {i+1}:")
             print("===============================================================")
             logs[vqa_model_name][benchmark_name][f'prompt_{i+1}'] = []
-            for sample in tqdm(benchmark):
-                result = vqa_model.multiple_choice_qa_random_ordering(
-                    data = sample["image"],
-                    question = sample["question"],
-                    context=sample["context"],
-                    choices = sample["choices"],
-                    answer = sample["answer"],
+
+            # single evaluation
+            # for sample in tqdm(benchmark):
+            #     result = vqa_model.multiple_choice_qa_random_ordering(
+            #         data = sample["image"],
+            #         question = sample["question"],
+            #         context=sample["context"],
+            #         choices = sample["choices"],
+            #         answer = sample["answer"],
+            #         prompt_func= build_prompt_func(prompt_template)
+            #     )
+            #     logs[vqa_model_name][benchmark_name][f'prompt_{i+1}'].append(result["accuracy"])
+            
+            # batch evaluation
+            batch_size = 100
+            for i in tqdm(range(0, len(benchmark), batch_size), total=(len(benchmark) + batch_size - 1) // batch_size):
+                batch = benchmark[i:i+batch_size]
+                batch_results = vqa_model.batch_multiple_choice_qa_random_ordering(
+                    images = batch["image"],
+                    questions = batch["question"],
+                    contexts =batch["context"],
+                    choices = batch["choices"],
+                    answers = batch["answer"],
                     prompt_func= build_prompt_func(prompt_template)
                 )
-                logs[vqa_model_name][benchmark_name][f'prompt_{i+1}'].append(result["accuracy"])
+                batch_accs = [single_results["accuracy"] for single_results in batch_results]
+                logs[vqa_model_name][benchmark_name][f'prompt_{i+1}'].extend(batch_accs)
+
             print(f"Overall Acc for the prompt {i+1}: {np.mean(logs[vqa_model_name][benchmark_name][f'prompt_{i+1}'])}")
 
     # save logs to disk
-    with open(f'./logs/compare_finetune/origin_{vqa_model_name}_eval.json', "w", encoding='utf-8') as f:
+    with open(f'./logs/reasoning-finetuning-logs/259k_LLaVaSFTData_30_templates_without_reseaoning_lora_{vqa_model_name}_eval.json', "w", encoding='utf-8') as f:
         json.dump(logs, f, ensure_ascii=False, indent=4)
 
     print(f"{vqa_model_name} evaluations have saved successfully!")
 
 
 experiment(
-    vqa_model_name="idefics2-8b",
-    benchmark_names=["seedbench1", "blink"],
+    vqa_model_name="llavav1.5-7b",
+    benchmark_names=["blink", "mmbench", "seedbench1"],
     prompt_templates=json.load(open("./prompt_factory/test_vsft_lora.json", "r"))["MultiChoiceImageQa"]
 )
