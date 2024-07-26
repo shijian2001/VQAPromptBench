@@ -14,7 +14,7 @@ print("=========================================================================
 class DataCollator:
     def __init__(self, processor):
         self.processor = processor
-        self.processor.tokenizer.model_max_length = 768
+        self.processor.tokenizer.model_max_length = 2048
         # self.image_token_id = processor.tokenizer.additional_special_tokens_ids[
         #     processor.tokenizer.additional_special_tokens.index("<image>")
         # ]
@@ -105,9 +105,9 @@ def main(data_path, output_dir, hub_model_id="", use_lora=False, use_4_bit=False
 
     training_args = TrainingArguments(
         num_train_epochs=1,
-        per_device_train_batch_size=1,
-        per_device_eval_batch_size=1,
-        gradient_accumulation_steps=256, # modified along with above
+        per_device_train_batch_size=3,
+        per_device_eval_batch_size=6,
+        gradient_accumulation_steps=86, # modified along with above
         warmup_ratio=0.03,
         lr_scheduler_type="cosine",
         learning_rate=2e-5,
@@ -127,7 +127,8 @@ def main(data_path, output_dir, hub_model_id="", use_lora=False, use_4_bit=False
         remove_unused_columns=False,
         report_to="wandb", # wandb or none
         run_name=f"idefics2-8b-lora-{hub_model_id}",
-        deepspeed="zero_stage3_config.json",
+        # deepspeed="zero_stage3_config.json",
+        fsdp="full_shard"
     )
 
     trainer = Trainer(

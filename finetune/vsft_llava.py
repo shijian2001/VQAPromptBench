@@ -10,6 +10,10 @@ print("=========================================================================
 print("Visual Instruction Tuning for LLaVa-1.5 is Starting!")
 print("===================================================================================")
 
+## DeepSpeed
+import deepspeed
+deepspeed.ops.op_builder.CPUAdamBuilder().load()
+
 ## Data Processor
 
 LLaVATemplate = "{% for message in messages %}{{message['role'].upper()}}{% if message['content'][0]['type'] == 'image' %}{{':'}}{% else %}{{': '}}{% endif %}{% for line in message['content'] %}{% if line['type'] == 'text' %}{{line['text']}}{% elif line['type'] == 'image' %}{{ '<image>' }}{% endif %}{% endfor %}\n{% endfor %}{% if add_generation_prompt %}{{ 'Assistant:' }}{% endif %}"
@@ -17,7 +21,7 @@ LLaVATemplate = "{% for message in messages %}{{message['role'].upper()}}{% if m
 class DataCollator:
     def __init__(self, processor):
         self.processor = processor
-        self.processor.tokenizer.model_max_length = 512
+        self.processor.tokenizer.model_max_length = 2048
 
     def _apply_chat_template(self, template, messages, add_generation_prompt=False):
         from jinja2 import Template
@@ -74,7 +78,7 @@ def main(data_path, output_dir, hub_model_id="", use_lora=False, use_4_bit=False
         model = LlavaForConditionalGeneration.from_pretrained(
             "llava-hf/llava-1.5-7b-hf",
             torch_dtype=torch.bfloat16, 
-            low_cpu_mem_usage=True,
+            low_cpu_mem_usage=True
         )
 
     # Lora
@@ -108,9 +112,9 @@ def main(data_path, output_dir, hub_model_id="", use_lora=False, use_4_bit=False
 
     training_args = TrainingArguments(
         num_train_epochs=1,
-        per_device_train_batch_size=1,
+        per_device_train_batch_size=8,
         per_device_eval_batch_size=4,
-        gradient_accumulation_steps=8, # 16 A100 40G
+        gradient_accumulation_steps=1, # 16 A100 40G
         warmup_ratio=0.03,
         lr_scheduler_type="cosine",
         learning_rate=2e-5,
@@ -129,8 +133,9 @@ def main(data_path, output_dir, hub_model_id="", use_lora=False, use_4_bit=False
         # hub_model_id=f"shijianS01/llava-7b-{hub_model_id}",
         remove_unused_columns=False,
         run_name=f"llava-7b-lora-{hub_model_id}",
-        report_to="wandb", # wandb or none
-        deepspeed="zero_stage3_config.json",
+        report_to="none", # wandb or none
+        gradient_checkpointing=True,
+        deepspeed="zero_stage3_config.json"
     )
 
     trainer = Trainer(
