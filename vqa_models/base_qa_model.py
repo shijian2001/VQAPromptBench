@@ -233,6 +233,42 @@ class QAModel(Model):
 				result["accuracy"] = int(answer == result["multiple_choice_answer"])
 
 		return results
+	
+	@torch.no_grad()
+	def batch_verify_reasoning(self, images, questions, contexts, choices, reasoning, prompt_func=None, answers=None):
+		# Get VQA model's answer
+		prefixs1, prefixs2, options = map(list, zip(*[make_options(choice, self.format) for choice in choices]))
+		prompts = [
+			prompt_func(question, context, option) if prompt_func else self.prompt_func(question, context, option) 
+			for question, context, option in zip(questions, contexts, options)
+		]
+		free_form_answers = self._qa(images, prompts, batched=True)
+		free_form_answers = [free_form_answer.strip() for free_form_answer in free_form_answers]
+
+		# disable explaination
+
+		# Limit the answer to the choices
+		multiple_choice_answers = [
+			self._limit_answer(free_form_answer, choice, prefix1, prefix2, option)
+			for free_form_answer, choice, prefix1, prefix2, option
+			in zip(free_form_answers, choices, prefixs1, prefixs2, options)
+		]
+
+		results = [
+			{
+				"free_form_answer"      : free_form_answer,
+				"multiple_choice_answer": multiple_choice_answer,
+				"choices"               : choice.copy(),
+			}
+			for free_form_answer, multiple_choice_answer, choice
+			in zip(free_form_answers, multiple_choice_answers, choices)
+		]
+
+		if answers is not None:
+			for result, answer in zip(results, answers):
+				result["accuracy"] = int(answer == result["multiple_choice_answer"])
+
+		return results
 
 	# Add optional para: prompt_func
 	@torch.no_grad()

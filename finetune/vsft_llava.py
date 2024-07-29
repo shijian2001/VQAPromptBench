@@ -16,18 +16,18 @@ deepspeed.ops.op_builder.CPUAdamBuilder().load()
 
 ## Data Processor
 
-LLaVATemplate = "{% for message in messages %}{{message['role'].upper()}}{% if message['content'][0]['type'] == 'image' %}{{':'}}{% else %}{{': '}}{% endif %}{% for line in message['content'] %}{% if line['type'] == 'text' %}{{line['text']}}{% elif line['type'] == 'image' %}{{ '<image>' }}{% endif %}{% endfor %}\n{% endfor %}{% if add_generation_prompt %}{{ 'Assistant:' }}{% endif %}"
+LLAVA_CHAT_TEMPLATE = """{% if not add_generation_prompt is defined %}{% set add_generation_prompt = false %}{% endif %}{% for message in messages %}{% if message['role'] == 'user' %}USER: {% else %}ASSISTANT: {% endif %}{% for item in message['content'] %}{% if item['type'] == 'text' %}{{ item['text'] }}{% elif item['type'] == 'image' %}<image>{% endif %}{% endfor %}{% if message['role'] == 'user' %} {% else %}{{eos_token}}{% endif %}{% endfor %}{% if add_generation_prompt %}ASSISTANT: {% endif %}"""
 
 class DataCollator:
     def __init__(self, processor):
         self.processor = processor
         self.processor.tokenizer.model_max_length = 2048
 
-    def _apply_chat_template(self, template, messages, add_generation_prompt=False):
-        from jinja2 import Template
-        template = Template(template)
-        result = template.render(messages=messages, add_generation_prompt=add_generation_prompt)
-        return result
+    # def _apply_chat_template(self, template, messages, add_generation_prompt=False):
+    #     from jinja2 import Template
+    #     template = Template(template)
+    #     result = template.render(messages=messages, add_generation_prompt=add_generation_prompt)
+    #     return result
 
     def __call__(self, examples):
         texts = []
@@ -35,7 +35,7 @@ class DataCollator:
         for example in examples:
             image = example["images"]
             messages = example["messages"]
-            text = self._apply_chat_template(LLaVATemplate, messages, add_generation_prompt=False)
+            text = self.processor.apply_chat_template(messages, tokenize=False, add_generation_prompt=False)
             texts.append(text.strip())
             images.append(image)
 
@@ -54,6 +54,7 @@ def main(data_path, output_dir, hub_model_id="", use_lora=False, use_4_bit=False
     processor = AutoProcessor.from_pretrained(
         "llava-hf/llava-1.5-7b-hf",
     )
+    processor.chat_template = LLAVA_CHAT_TEMPLATE
     
     ## Load model
 
@@ -95,6 +96,8 @@ def main(data_path, output_dir, hub_model_id="", use_lora=False, use_4_bit=False
             task_type="CAUSAL_LM",
             use_dora=False
         )
+        # fix bug
+        model.enable_input_require_grads()
 
         model = get_peft_model(model, lora_config)
         model.print_trainable_parameters()
@@ -132,10 +135,11 @@ def main(data_path, output_dir, hub_model_id="", use_lora=False, use_4_bit=False
         bf16=True,
         # hub_model_id=f"shijianS01/llava-7b-{hub_model_id}",
         remove_unused_columns=False,
-        run_name=f"llava-7b-lora-{hub_model_id}",
-        report_to="none", # wandb or none
+        run_name=f"llava-7b-{hub_model_id}",
+        report_to="wandb", # wandb or none
         gradient_checkpointing=True,
-        deepspeed="zero_stage3_config.json"
+        deepspeed="zero_stage3_config.json",
+        seed=42
     )
 
     trainer = Trainer(
@@ -151,7 +155,7 @@ def main(data_path, output_dir, hub_model_id="", use_lora=False, use_4_bit=False
 
     # Save best model
     best_model_path=f"{output_dir}/best_model"
-    trainer.model.save_pretrained(best_model_path)
+    trainer.save_model(best_model_path)
 
     # trainer.push_to_hub()
 
