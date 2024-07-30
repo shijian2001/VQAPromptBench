@@ -1,35 +1,48 @@
 # Visual instruction tuning data generator
-# DataRichPromptLessGenerator:
-    # Data: 15k samples from HuggingFaceH4/llava-instruct-mix-vsft
-    # Prompt Templates: 20 templates
-    # shijianS01/20-templates-llava-vsft-300k
-# PromptRichDataLessGenerator:
-    # Data: 50 samples from MMBench
-    # Prompt Templates: 6000 templates
-    # shijianS01/6k-templates-mm-vsft-300k
 
 from typing import List
 from datasets import load_from_disk, load_dataset, Dataset
+from vqa_datasets import SingleImageQADataset 
 from datasets import DatasetDict
 from tqdm import tqdm
 from typing import *
 import json
 import copy
 import random
+import re
+
+def remove_context(template):
+    pattern = r'(\{question\}|\{context\}|\{choices\}|[^{}]+)'
+    split_template = re.findall(pattern, template)
+    
+    try:
+        context_index = split_template.index('{context}')
+    except ValueError:
+        return template
+    
+    for i in range(context_index, -1, -1):
+        if split_template[i] in ['{question}', '{choices}']:
+            result = split_template[:i+1] + split_template[context_index+1:]
+            return ''.join(result)
+    
+    result = split_template[context_index+2:] # consider \n
+    return ''.join(result)
 
 class BaseGenerator():
     def __init__(self, dataset_path: str, templates: List[str], split="None"):
         self.templates = templates
 
         # special case
-        original_templates = ["{question}" for _ in range(len(self.templates)-2)]
-        self.templates = original_templates + self.templates
+        # original_templates = ["{question}" for _ in range(len(self.templates)-2)]
+        # self.templates = original_templates + self.templates
         # print(self.templates)
 
         if split != "None":
             self.dataset = load_dataset(dataset_path, split=split)
         else:
-            self.dataset = load_dataset(dataset_path)
+            # self.dataset = load_dataset(dataset_path)
+            # mmbench
+            self.dataset = SingleImageQADataset(dataset_path).get_dataset()
     
     def generator(self):
         "(Abstract method) abstract data generator method"
@@ -138,8 +151,8 @@ class DataRichPromptLessGenerator(BaseGenerator):
                 yield sample
 
 class PromptRichDataLessGenerator(BaseGenerator):
-    def __init__(self, dataset_path: str, templates: List[str]):
-        super().__init__(dataset_path, templates)
+    def __init__(self, dataset_path: str, templates: List[str], split="None"):
+        super().__init__(dataset_path, templates, split)
 
     def _make_options(self, choices, format='letter'):
         assert format in ['numeric', 'letter']
@@ -194,35 +207,121 @@ class PromptRichDataLessGenerator(BaseGenerator):
 
                 yield vsft_data
 
+
+class RandomPromptRichDataRichGenerator(BaseGenerator):
+    ## 4000 mmbench, 6000 templates
+    # For each data, sample randomly 75 prompts from the 6000 prompts
+        # if context == "nan" drop the context part of the prompt
+    # only push text messages to huggingface, put image index on "images" domain
+    def __init__(self, dataset_path: str, templates: List[str], split="None"):
+        super().__init__(dataset_path, templates, split)
+
+    def _make_options(self, choices, format='letter'):
+        assert format in ['numeric', 'letter']
+        if format == 'numeric':
+            prefix1 = [str(i + 1) for i in range(len(choices))]
+        else:
+            prefix1 = [chr(ord("a") + i).upper() for i in range(len(choices))]
+        prefix2 = [f"({p})" for p in prefix1]
+        return prefix1, prefix2, [f'{p} {c}' for p, c in zip(prefix2, choices)]
+
+    def generator(self):
+        for data in tqdm(self.dataset):
+            prompt_templates = random.sample(self.templates, 75)
+            if data["context"] == "nan":
+                prompt_templates = [remove_context(template) for template in prompt_templates]
+                prompts = [
+                    template.format(
+                        question = data["question"],
+                        choices = ' '.join(self._make_options(data["choices"])[2])
+                    ) for template in prompt_templates
+                ]
+            else:
+                prompts = [
+                    template.format(
+                        question = data["question"],
+                        context = data["context"],
+                        choices = ' '.join(self._make_options(data["choices"])[2])
+                    ) for template in prompt_templates
+                ]
+
+            for prompt in prompts:
+                vsft_data = {
+                    'messages': [
+                        {
+                            'content': [
+                                {
+                                    'index': 0, 
+                                    'text': None, 
+                                    'type': 'image'
+                                },
+                                {
+                                    'index': None,
+                                    'text': f"\n{prompt}",
+                                    'type': 'text'
+                                }
+                            ],
+                            'role': 'user'
+                        },
+                        {
+                            'content': [
+                                {
+                                    'index': None,
+                                    'text': data["answer"],
+                                    'type': 'text'
+                                }
+                            ],
+                            'role': 'assistant'
+                        }
+                    ],
+                    'images': data["index"]
+                }
+
+                yield vsft_data
+
+
 if __name__ == "__main__":
-    print("Train Generator")
-    train_generator = DataRichPromptRandomReasoningGenerator(
-        dataset_path="HuggingFaceH4/llava-instruct-mix-vsft",
-        templates=json.load(open("../prompt_factory/vsft_prompts.json"))["MultiQATemplates"],
-        split = "train"
+    # print("Train Generator")
+    # train_generator = DataRichPromptRandomReasoningGenerator(
+    #     dataset_path="HuggingFaceH4/llava-instruct-mix-vsft",
+    #     templates=json.load(open("../prompt_factory/vsft_prompts.json"))["MultiQATemplates"],
+    #     split = "train"
+    # ).generator
+
+    # print("Test Generator")
+    # test_generator = DataRichPromptRandomReasoningGenerator(
+    #     dataset_path="HuggingFaceH4/llava-instruct-mix-vsft",
+    #     templates=json.load(open("../prompt_factory/vsft_prompts.json"))["MultiQATemplates"],
+    #     split = "test"
+    # ).generator
+
+    # test_dataset = Dataset.from_generator(test_generator)
+    # print(test_dataset[0]["images"])
+    # print(test_dataset[0]["messages"][1])
+
+    # train_dataset = Dataset.from_generator(train_generator)
+
+    # # Combine into a DatasetDict
+    # gen_dataset = DatasetDict({
+    #     "train": train_dataset,
+    #     "test": test_dataset
+    # })
+
+    # # gen_dataset = gen_dataset.shuffle(42)
+    # # gen_dataset.save_to_disk('../subset/random_prompts_llava__vsft')
+    # # dataset = gen_dataset.train_test_split(test_size=0.1)
+    # print(gen_dataset)
+    # gen_dataset.push_to_hub("shijianS01/reasoning-30-templates-259k-llava-data")
+
+    print("...MM-Bench VSFT Data Generator...")
+    mm_generator = RandomPromptRichDataRichGenerator(
+        dataset_path="mm_vsft_train",
+        templates=json.load(open("./prompt_factory/prompt_pool.json"))["MultiChoiceImageQa"],
+        split="None"
     ).generator
 
-    print("Test Generator")
-    test_generator = DataRichPromptRandomReasoningGenerator(
-        dataset_path="HuggingFaceH4/llava-instruct-mix-vsft",
-        templates=json.load(open("../prompt_factory/vsft_prompts.json"))["MultiQATemplates"],
-        split = "test"
-    ).generator
+    mm_vsft_dataset = Dataset.from_generator(mm_generator)
 
-    test_dataset = Dataset.from_generator(test_generator)
-    print(test_dataset[0]["images"])
-    print(test_dataset[0]["messages"][1])
-
-    train_dataset = Dataset.from_generator(train_generator)
-
-    # Combine into a DatasetDict
-    gen_dataset = DatasetDict({
-        "train": train_dataset,
-        "test": test_dataset
-    })
-
-    # gen_dataset = gen_dataset.shuffle(42)
-    # gen_dataset.save_to_disk('../subset/random_prompts_llava__vsft')
-    # dataset = gen_dataset.train_test_split(test_size=0.1)
-    print(gen_dataset)
-    gen_dataset.push_to_hub("shijianS01/reasoning-30-templates-259k-llava-data")
+    mm_vsft_dataset_split = mm_vsft_dataset.train_test_split(test_size=0.1)
+    print(mm_vsft_dataset_split)
+    mm_vsft_dataset_split.push_to_hub("shijianS01/6k-templates-4k-mm-data")

@@ -1,5 +1,6 @@
 vqa_eval.ipynb
-__pycache__/
+vqa_eval_test.ipynb
+eval_hallucination.py
 subset/
 logs/
 wandb/

@@ -5,6 +5,8 @@ from transformers import TrainingArguments, Trainer
 from transformers import BitsAndBytesConfig
 from peft import LoraConfig, get_peft_model
 from transformers import AutoProcessor, LlavaForConditionalGeneration
+from vqa_datasets import SingleImageQADataset
+import pandas as pd
 
 print("===================================================================================")
 print("Visual Instruction Tuning for LLaVa-1.5 is Starting!")
@@ -18,22 +20,21 @@ deepspeed.ops.op_builder.CPUAdamBuilder().load()
 
 LLAVA_CHAT_TEMPLATE = """{% if not add_generation_prompt is defined %}{% set add_generation_prompt = false %}{% endif %}{% for message in messages %}{% if message['role'] == 'user' %}USER: {% else %}ASSISTANT: {% endif %}{% for item in message['content'] %}{% if item['type'] == 'text' %}{{ item['text'] }}{% elif item['type'] == 'image' %}<image>{% endif %}{% endfor %}{% if message['role'] == 'user' %} {% else %}{{eos_token}}{% endif %}{% endfor %}{% if add_generation_prompt %}ASSISTANT: {% endif %}"""
 
+## MM Data VSFT
+
+mm_image_dataset = SingleImageQADataset("mm_vsft_train").get_dataset()
+mm_images = pd.DataFrame(mm_image_dataset)
+
 class DataCollator:
     def __init__(self, processor):
         self.processor = processor
         self.processor.tokenizer.model_max_length = 2048
 
-    # def _apply_chat_template(self, template, messages, add_generation_prompt=False):
-    #     from jinja2 import Template
-    #     template = Template(template)
-    #     result = template.render(messages=messages, add_generation_prompt=add_generation_prompt)
-    #     return result
-
     def __call__(self, examples):
         texts = []
         images = []
         for example in examples:
-            image = example["images"]
+            image = mm_images[mm_images["index"] == example["images"]]["image"].values[0]
             messages = example["messages"]
             text = self.processor.apply_chat_template(messages, tokenize=False, add_generation_prompt=False)
             texts.append(text.strip())
@@ -138,7 +139,7 @@ def main(data_path, output_dir, hub_model_id="", use_lora=False, use_4_bit=False
         run_name=f"llava-7b-{hub_model_id}",
         report_to="wandb", # wandb or none
         gradient_checkpointing=True,
-        deepspeed="zero_stage3_config.json",
+        deepspeed="./finetune/zero_stage3_config.json",
         seed=42
     )
 

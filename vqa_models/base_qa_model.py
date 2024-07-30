@@ -40,11 +40,28 @@ def make_options(choices, format='letter'):
 
 
 def check_contain(answer, options):
-	contains = [option in answer for option in options]
+	contains = [option.lower().strip() in answer.lower().strip() for option in options]
 	if sum(contains) == 1:
 		return contains.index(True)
 	else:
 		return -1
+
+def extraction(answer):
+	import re
+
+	question_pattern = re.compile(r"Question:\s*(.*?)(?:\n|$)", re.IGNORECASE)
+	question_match = question_pattern.search(answer)
+	question = question_match.group(1).strip() if question_match else "none"
+	
+	choices_pattern = re.compile(r"Choices:\s*(.*?)(?:\n|$)", re.IGNORECASE)
+	choices_match = choices_pattern.search(answer)
+	choices = choices_match.group(1).strip() if choices_match else "none"
+	
+	keywords = ["Question", "Context", "Choices"]
+	pattern = re.compile(rf"({'|'.join(keywords)}):\s.*?(?:\n|$)", re.IGNORECASE)
+	cleaned_answer = pattern.sub("", answer)
+	
+	return cleaned_answer.strip(), question.strip(), choices.strip()
 
 class Model:
 	pass
@@ -85,16 +102,17 @@ class QAModel(Model):
 			print(f"[Interpretable] Start Interpretable Mode")
 
 		self.enable_choice_search = enable_choice_search
-		if enable_choice_search:
+		# if enable_choice_search:
 			# use SBERT to find the closest choice
-			self.sentence_transformer = sentence_transformers.SentenceTransformer("all-mpnet-base-v2", device='cpu')
+		self.sentence_transformer = sentence_transformers.SentenceTransformer("all-mpnet-base-v2", device='cpu')
 
 	@torch.no_grad()
-	def choice_search(self, free_form_answer, choices):
+	def choice_search(self, free_form_answer, choices, threshold=0.8):
 		query_embedding = self.sentence_transformer.encode([free_form_answer])
 		choices_embedding = self.sentence_transformer.encode(choices)
-		top_choice_index = np.argmax(np.dot(choices_embedding, query_embedding.T))
-		return choices[top_choice_index]
+		similarities = np.dot(choices_embedding, query_embedding.T)
+		top_choice_index = np.argmax(similarities) if similarities[np.argmax(similarities)] >= threshold else -1
+		return choices[top_choice_index] if top_choice_index != -1 else ""
 
 	def _data_to_str(self, data):
 		""" abstract method """
@@ -150,6 +168,7 @@ class QAModel(Model):
 		elif free_form_answer in prefix2:
 			multiple_choice_answer = choices[prefix2.index(free_form_answer)]
 		elif self.enable_choice_search:
+			# choice_search need update
 			multiple_choice_answer = self.choice_search(free_form_answer, choices)
 		else:
 			multiple_choice_answer = ""
@@ -230,11 +249,13 @@ class QAModel(Model):
 
 		if answers is not None:
 			for result, answer in zip(results, answers):
+				result["ground_truth_answer"] = answer
 				result["accuracy"] = int(answer == result["multiple_choice_answer"])
 
 		return results
 	
 	@torch.no_grad()
+	# TODO
 	def batch_verify_reasoning(self, images, questions, contexts, choices, reasoning, prompt_func=None, answers=None):
 		# Get VQA model's answer
 		prefixs1, prefixs2, options = map(list, zip(*[make_options(choice, self.format) for choice in choices]))
@@ -300,5 +321,61 @@ class QAModel(Model):
 			single_results["accuracy"] = np.mean([result["accuracy"] for result in single_results.values()])
 		
 		return batch_results
+	
+	@torch.no_grad()
+	def batch_qa_extraction(self, images, questions, contexts, choices, prompt_func=None, answers=None):
+		# Get VQA model's answer
+		prefixs1, prefixs2, options = map(list, zip(*[make_options(choice, self.format) for choice in choices]))
+		prompts = [
+			prompt_func(question, context, option) if prompt_func else self.prompt_func(question, context, option) 
+			for question, context, option in zip(questions, contexts, options)
+		]
+		free_form_answers = self._qa(images, prompts, batched=True)
+		free_form_answers = [free_form_answer.strip() for free_form_answer in free_form_answers]
+
+		# Extract answers
+		# Extract question and choices for reasoning study
+		extracted_answers, extracted_questions, extracted_options = map(list, zip(*[extraction(free_form_answer) for free_form_answer in free_form_answers]))
+
+		# Limit the answer to the choices
+		multiple_choice_answers = [
+			self._limit_answer(free_form_answer, choice, prefix1, prefix2, option)
+			for free_form_answer, choice, prefix1, prefix2, option
+			in zip(extracted_answers, choices, prefixs1, prefixs2, options)
+		]
+
+		results = [
+			{
+				"free_form_answer"      : free_form_answer,
+				"multiple_choice_answer": multiple_choice_answer,
+				"choices"               : choice.copy(),
+				"question"              : question,
+				"extracted_question"    : extracted_question,
+				"passed_option"         : option.copy(),
+				"extracted_option"      : extracted_option,
+			}
+			for free_form_answer, multiple_choice_answer, choice, question, extracted_question, option, extracted_option
+			in zip(free_form_answers, multiple_choice_answers, choices, questions, extracted_questions, options, extracted_options)
+		]
+
+		def matching(origin, extracted):
+			origin, extracted = str(origin), str(extracted)
+			if origin in extracted or extracted in origin:
+				return 1
+			elif self.choice_search(extracted, [origin], threshold=0.8) != "":
+				return 1
+			else:
+				return 0
+
+		for result in results:
+			result["question_matched"] = matching(result["question"], result["extracted_question"]) if result["extracted_question"] != "none" else 0
+			result["option_matched"] = matching(result["passed_option"], result["extracted_option"]) if result["extracted_option"] != "none" else None
+
+		if answers is not None:
+			for result, answer in zip(results, answers):
+				result["ground_truth_answer"] = answer
+				result["accuracy"] = int(answer == result["multiple_choice_answer"])
+
+		return results
 		
 

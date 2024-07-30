@@ -4,6 +4,7 @@ from datasets import load_from_disk
 single_image_qa_datasets = {
     "blink" : ("BLINK", "./subset/blink"),
     "mmbench" : ("MMBench", "./subset/mmbench"),
+    "mm_vsft_train": ("MMBench", "./subset/meta_mm_vsft/train"),
     "seedbench1": ("SeedBench1", "./subset/seedbench1")
 }
 
@@ -50,7 +51,7 @@ class MMBench(SingleVQADatsetInstance):
 
     def get_standard_dataset(self):
 
-        standard_dataset = self.dataset.select_columns(["image", "question", "hint", "answer", "A", "B", "C", "D"]).rename_column("hint", "context")
+        standard_dataset = self.dataset.select_columns(["index", "image", "question", "hint", "answer", "A", "B", "C", "D"]).rename_column("hint", "context")
 
         def _process_data(sample):
             sample["choices"] = [sample[option] for option in [ "A", "B", "C", "D"] if sample[option] != "nan"]
