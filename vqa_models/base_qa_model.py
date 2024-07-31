@@ -110,9 +110,11 @@ class QAModel(Model):
 	def choice_search(self, free_form_answer, choices, threshold=0.8):
 		query_embedding = self.sentence_transformer.encode([free_form_answer])
 		choices_embedding = self.sentence_transformer.encode(choices)
-		similarities = np.dot(choices_embedding, query_embedding.T)
-		top_choice_index = np.argmax(similarities) if similarities[np.argmax(similarities)] >= threshold else -1
-		return choices[top_choice_index] if top_choice_index != -1 else ""
+		# similarities = np.dot(choices_embedding, query_embedding.T)
+		# top_choice_index = np.argmax(similarities) if similarities[np.argmax(similarities)] >= threshold else -1
+		# return choices[top_choice_index] if top_choice_index != -1 else ""
+		top_choice_index = np.argmax(np.dot(choices_embedding, query_embedding.T))
+		return choices[top_choice_index]
 
 	def _data_to_str(self, data):
 		""" abstract method """
@@ -168,7 +170,6 @@ class QAModel(Model):
 		elif free_form_answer in prefix2:
 			multiple_choice_answer = choices[prefix2.index(free_form_answer)]
 		elif self.enable_choice_search:
-			# choice_search need update
 			multiple_choice_answer = self.choice_search(free_form_answer, choices)
 		else:
 			multiple_choice_answer = ""
@@ -253,43 +254,6 @@ class QAModel(Model):
 				result["accuracy"] = int(answer == result["multiple_choice_answer"])
 
 		return results
-	
-	@torch.no_grad()
-	# TODO
-	def batch_verify_reasoning(self, images, questions, contexts, choices, reasoning, prompt_func=None, answers=None):
-		# Get VQA model's answer
-		prefixs1, prefixs2, options = map(list, zip(*[make_options(choice, self.format) for choice in choices]))
-		prompts = [
-			prompt_func(question, context, option) if prompt_func else self.prompt_func(question, context, option) 
-			for question, context, option in zip(questions, contexts, options)
-		]
-		free_form_answers = self._qa(images, prompts, batched=True)
-		free_form_answers = [free_form_answer.strip() for free_form_answer in free_form_answers]
-
-		# disable explaination
-
-		# Limit the answer to the choices
-		multiple_choice_answers = [
-			self._limit_answer(free_form_answer, choice, prefix1, prefix2, option)
-			for free_form_answer, choice, prefix1, prefix2, option
-			in zip(free_form_answers, choices, prefixs1, prefixs2, options)
-		]
-
-		results = [
-			{
-				"free_form_answer"      : free_form_answer,
-				"multiple_choice_answer": multiple_choice_answer,
-				"choices"               : choice.copy(),
-			}
-			for free_form_answer, multiple_choice_answer, choice
-			in zip(free_form_answers, multiple_choice_answers, choices)
-		]
-
-		if answers is not None:
-			for result, answer in zip(results, answers):
-				result["accuracy"] = int(answer == result["multiple_choice_answer"])
-
-		return results
 
 	# Add optional para: prompt_func
 	@torch.no_grad()
@@ -362,6 +326,7 @@ class QAModel(Model):
 			origin, extracted = str(origin), str(extracted)
 			if origin in extracted or extracted in origin:
 				return 1
+			# !choice_search need to be updated! don't use now
 			elif self.choice_search(extracted, [origin], threshold=0.8) != "":
 				return 1
 			else:

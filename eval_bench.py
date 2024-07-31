@@ -43,7 +43,7 @@ def experiment(
     # load vqa model
     # pass default prompt template
     # pass use_lora=True to launch [Lora Inference]
-    vqa_model = ImageQAModel(vqa_model_name, prompt_func=detailed_imageqa_prompt, enable_choice_search=False, torch_device=1, precision=torch.float16, use_lora=False)
+    vqa_model = ImageQAModel(vqa_model_name, prompt_func=detailed_imageqa_prompt, enable_choice_search=True, torch_device=1, precision=torch.float16, use_lora=False)
     print("===============================================================")
     print(f"{vqa_model_name} evaluation started:")
     print("===============================================================")
@@ -55,7 +55,7 @@ def experiment(
         logs[vqa_model_name][benchmark_name] = {}
         # load datasets
         benchmark = SingleImageQADataset(benchmark_name).get_dataset()
-        statistics = []
+        # statistics = []
         for i, prompt_template in enumerate(prompt_templates):
             print("===============================================================")
             print(f"Evaluated on prompt {i+1}:")
@@ -78,7 +78,7 @@ def experiment(
             batch_size = 100
             for j in tqdm(range(0, len(benchmark), batch_size), total=(len(benchmark) + batch_size - 1) // batch_size):
                 batch = benchmark[j:j+batch_size]
-                batch_results = vqa_model.batch_qa_extraction(
+                batch_results = vqa_model.batch_multiple_choice_qa_random_ordering(
                     images = batch["image"],
                     questions = batch["question"],
                     contexts = batch["context"],
@@ -86,39 +86,39 @@ def experiment(
                     answers = batch["answer"],
                     prompt_func= build_prompt_func(prompt_template)
                 )
-                # batch_accs = [single_results["accuracy"] for single_results in batch_results]
-                # logs[vqa_model_name][benchmark_name][f'prompt_{i+1}'].extend(batch_accs)
-                logs[vqa_model_name][benchmark_name][f'prompt_{i+1}'].extend(batch_results)
+                batch_accs = [single_results["accuracy"] for single_results in batch_results]
+                logs[vqa_model_name][benchmark_name][f'prompt_{i+1}'].extend(batch_accs)
+                # logs[vqa_model_name][benchmark_name][f'prompt_{i+1}'].extend(batch_results)
 
-            accs, question_extraction_accs, options_extraction_accs = [], [], []
-            for single_results in logs[vqa_model_name][benchmark_name][f'prompt_{i+1}']:
-                accs.append(single_results["accuracy"])
-                question_extraction_accs.append(single_results["question_matched"])
-                if single_results["option_matched"] is not None:
-                    options_extraction_accs.append(single_results["option_matched"])
-            print(f"Overall Acc for the prompt {i+1}: {np.mean(accs)}")
-            print(f"Overall question extraction Acc for the prompt {i+1}: {np.mean(question_extraction_accs)}")
-            if options_extraction_accs == []:
-                options_extraction_accs = [0]
-            print(f"Overall option extraction Acc for the prompt {i+1}: {np.mean(options_extraction_accs)}")
+            # accs, question_extraction_accs, options_extraction_accs = [], [], []
+            # for single_results in logs[vqa_model_name][benchmark_name][f'prompt_{i+1}']:
+            #     accs.append(single_results["accuracy"])
+            #     question_extraction_accs.append(single_results["question_matched"])
+            #     if single_results["option_matched"] is not None:
+            #         options_extraction_accs.append(single_results["option_matched"])
+            print(f"Overall Acc for the prompt {i+1}: {np.mean(logs[vqa_model_name][benchmark_name][f'prompt_{i+1}'])}")
+            # print(f"Overall question extraction Acc for the prompt {i+1}: {np.mean(question_extraction_accs)}")
+            # if options_extraction_accs == []:
+            #     options_extraction_accs = [0]
+            # print(f"Overall option extraction Acc for the prompt {i+1}: {np.mean(options_extraction_accs)}")
         
-            statistics.append([i+1, np.mean(accs), np.mean(question_extraction_accs), np.mean(options_extraction_accs)])
+            # statistics.append([i+1, np.mean(accs), np.mean(question_extraction_accs), np.mean(options_extraction_accs)])
         
-        with open(f'./logs/reasoning-finetuning-logs/{vqa_model_name}_statistics_{benchmark_name}.csv', mode='w', newline='') as file:
-            writer = csv.writer(file)
-            writer.writerow(['Prompt', 'Overall Acc', 'Question Extraction Acc', 'Option Extraction Acc'])
-            writer.writerows(statistics)
+        # with open(f'./logs/reasoning-finetuning-logs/{vqa_model_name}_statistics_{benchmark_name}.csv', mode='w', newline='') as file:
+        #     writer = csv.writer(file)
+        #     writer.writerow(['Prompt', 'Overall Acc', 'Question Extraction Acc', 'Option Extraction Acc'])
+        #     writer.writerows(statistics)
 
     # save logs to disk
-    # './logs/reasoning-finetuning-logs/259k_LLaVaSFTData_30_templates_without_reseaoning_{vqa_model_name}_eval.json'
-    with open(f'./logs/reasoning-finetuning-logs/7_29_259k_LLaVaSFTData_30_templates_without_reseaoning_{vqa_model_name}_eval.json', "w", encoding='utf-8') as f:
+    # ./logs/multi-templates-logs/all_param_6k_templates_4k_mm_data_{vqa_model_name}_eval.json
+    with open(f'./logs/multi-templates-logs/origin_{vqa_model_name}_eval.json', "w", encoding='utf-8') as f:
         json.dump(logs, f, ensure_ascii=False, indent=4)
 
     print(f"{vqa_model_name} evaluations have saved successfully!")
 
 
 experiment(
-    vqa_model_name="llavav1.5-7b-finetuned",
+    vqa_model_name="llavav1.5-7b",
     benchmark_names=["seedbench1"],
     prompt_templates=json.load(open("./prompt_factory/test_vsft_lora.json", "r"))["MultiChoiceImageQa"]
 )
