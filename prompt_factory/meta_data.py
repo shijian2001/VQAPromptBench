@@ -21,7 +21,7 @@ QUESTION_PATTERNS = [
     Pattern(
         "{is_please}{answer} the{is_following}question:{is_line_breaking}{{question}}",
         [   
-            MetaElement("answer", ["answer", "determine", "determine the answer to", "respond to", "give your anwer to", "provide your anwer to"]),
+            MetaElement("answer", ["answer", "determine", "determine the answer to", "respond to", "give your answer to", "provide your answer to"]),
             is_please,
             is_following,
             is_line_breaking
@@ -34,7 +34,7 @@ QUESTION_PATTERNS = [
             MetaElement("what_you_see", [" ", " what you see in ", " what you have seen in "]),
             MetaElement("article", ["the", "this"]),
             MetaElement("image", ["image", "picture"]),
-            MetaElement("answer", ["answer", "determine", "determine the answer to", "respond to", "give your anwer to", "provide your anwer to"]),
+            MetaElement("answer", ["answer", "determine", "determine the answer to", "respond to", "give your answer to", "provide your answer to"]),
             is_line_breaking,
             is_please,
             is_following
@@ -47,7 +47,7 @@ QUESTION_PATTERNS = [
             MetaElement("what_you_see", [" ", " what you see in ", " what you have seen in "]),
             MetaElement("article", ["the", "this"]),
             MetaElement("image", ["image", "picture"]),
-            MetaElement("answer", ["answer", "determine", "determine the answer to", "respond to", "give your anwer to", "provide your anwer to"]),
+            MetaElement("answer", ["answer", "determine", "determine the answer to", "respond to", "give your answer to", "provide your answer to"]),
             is_line_breaking,
             is_please,
             is_following
