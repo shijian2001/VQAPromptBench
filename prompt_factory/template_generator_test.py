@@ -193,7 +193,20 @@ CHOICES_PATTERNS = [
 
 ###################################### test ############################################
 
-def test_for_template_generator(question: str, candidates: List[str], enable_shuffle: bool=False):
+# Utils function
+def make_options(choices, format='letter'):
+	assert format in ['numeric', 'letter']
+	if format == 'numeric':
+		prefix1 = [str(i + 1) for i in range(len(choices))]
+	else:
+		prefix1 = [chr(ord("a") + i).upper() for i in range(len(choices))]
+	prefix2 = [f"({p})" for p in prefix1]
+	return prefix1, prefix2, [f'{p} {c}' for p, c in zip(prefix2, choices)]
+
+def test_for_template_generator(question: str, candidates: List[str], answer_id: List[int], enable_shuffle: bool=False):
+
+    prefix1, prefix2, options = make_options(candidates)
+    answer = random.choice([prefix1[answer_id[0]-1], prefix2[answer_id[0]-1], options[answer_id[0]-1]])
 
     # Define question and choices template generator
     question_template_generator = BaseTemplateGenerator(QUESTION_PATTERNS)
@@ -211,11 +224,24 @@ def test_for_template_generator(question: str, candidates: List[str], enable_shu
     
     return prompt_template.format(
         question=question,
-        choices=" ".join(candidates)
-    )
+        choices=" ".join(options)
+    ), answer
 
 if __name__ == "__main__":
-    # Generate a VQA prompt template randomly
+    # Given question, candidates, answer_id, generate VQA prompt with random templates
     question = "How many cats are there in the picture?"
-    candidates = ["(A) 1", "(B) 2", "(C) 3", "(D) 4",]
-    print(test_for_template_generator(question, candidates))
+    candidates = ["1", "2", "3", "4"]
+    answer_id = [2]
+    prompt, answer = test_for_template_generator(question, candidates, answer_id)
+    print("###################################### Prompt #######################################")
+    print(prompt)
+    print("###################################### Answer #######################################")
+    print(answer)
+
+    # Example output
+    # ###################################### Prompt #######################################
+    # Referring what you see in this image, determine the answer to the following question: How many cats are there in the picture?
+    # Indicate the correct solution to answer the question.
+    # (A) 1 (B) 2 (C) 3 (D) 4
+    # ###################################### Answer #######################################
+    # (B) 2
