@@ -6,6 +6,7 @@ from transformers import BitsAndBytesConfig
 from peft import LoraConfig, get_peft_model
 from transformers import AutoProcessor, LlavaForConditionalGeneration
 from vqa_datasets import SingleImageQADataset
+from prompt_factory import BaseTemplateGenerator, QUESTION_PATTERNS
 import pandas as pd
 
 print("===================================================================================")
@@ -18,12 +19,34 @@ deepspeed.ops.op_builder.CPUAdamBuilder().load()
 
 ## Data Processor
 
-LLAVA_CHAT_TEMPLATE = """{% if not add_generation_prompt is defined %}{% set add_generation_prompt = false %}{% endif %}{% for message in messages %}{% if message['role'] == 'user' %}USER: {% else %}ASSISTANT: {% endif %}{% for item in message['content'] %}{% if item['type'] == 'text' %}{{ item['text'] }}{% elif item['type'] == 'image' %}<image>{% endif %}{% endfor %}{% if message['role'] == 'user' %} {% else %}{{eos_token}}{% endif %}{% endfor %}{% if add_generation_prompt %}ASSISTANT: {% endif %}"""
+# LLAVA_CHAT_TEMPLATE = """{% if not add_generation_prompt is defined %}{% set add_generation_prompt = false %}{% endif %}{% for message in messages %}{% if message['role'] == 'user' %}USER: {% else %}ASSISTANT: {% endif %}{% for item in message['content'] %}{% if item['type'] == 'text' %}{{ item['text'] }}{% elif item['type'] == 'image' %}<image>{% endif %}{% endfor %}{% if message['role'] == 'user' %} {% else %}{{eos_token}}{% endif %}{% endfor %}{% if add_generation_prompt %}ASSISTANT: {% endif %}"""
 
-## MM Data VSFT
+from prompt_factory import BaseTemplateGenerator, QUESTION_PATTERNS
 
-mm_image_dataset = SingleImageQADataset("mm_vsft_train").get_dataset()
-mm_images = pd.DataFrame(mm_image_dataset)
+question_template_generator = BaseTemplateGenerator(QUESTION_PATTERNS)
+
+def _render_prompt_template(messages: str):
+    question_template = question_template_generator.generate()
+    if messages[0] == "\n":
+        prompt = "\n"+ question_template.format(question=messages.strip())
+    elif messages[-1] == "\n":
+        prompt = question_template.format(question=messages.strip()) + "\n"
+    else:
+        prompt = question_template.format(question=messages.strip())
+    return prompt
+
+def _apply_chat_template(messages: str, add_generation_prompt: bool=False):
+    from jinja2 import Environment
+    env = Environment()
+    env.filters['_render_prompt_template'] = _render_prompt_template
+    LLAVA_CHAT_TEMPLATE = """{% if not add_generation_prompt is defined %}{% set add_generation_prompt = false %}{% endif %}{% for message in messages %}{% if message['role'] == 'user' %}USER: {% else %}\nASSISTANT: {% endif %}{% for item in message['content'] %}{% if item['type'] == 'text' %}{% if message['role'] == 'user' %}{{ item['text'] | _render_prompt_template }}{% else %}{{ item['text'] }}{% endif %}{% elif item['type'] == 'image' %}<image>{% endif %}{% endfor %}{% if message['role'] == 'user' %} {% else %}{{ eos_token }}{% endif %}{% endfor %}{% if add_generation_prompt %}ASSISTANT: {% endif %}"""
+    template = env.from_string(LLAVA_CHAT_TEMPLATE)
+    return template.render(messages=messages, add_generation_prompt=add_generation_prompt, eos_token='<s/>\n').strip()
+
+# ## MM Data VSFT
+
+# mm_image_dataset = SingleImageQADataset("mm_vsft_train").get_dataset()
+# mm_images = pd.DataFrame(mm_image_dataset)
 
 class DataCollator:
     def __init__(self, processor):
@@ -34,9 +57,11 @@ class DataCollator:
         texts = []
         images = []
         for example in examples:
-            image = mm_images[mm_images["index"] == example["images"]]["image"].values[0]
+            # image = mm_images[mm_images["index"] == example["images"]]["image"].values[0]
+            image = example["images"][0]
             messages = example["messages"]
-            text = self.processor.apply_chat_template(messages, tokenize=False, add_generation_prompt=False)
+            # text = self.processor.apply_chat_template(messages, tokenize=False, add_generation_prompt=False)
+            text = _apply_chat_template(messages, add_generation_prompt=False)
             texts.append(text.strip())
             images.append(image)
 
@@ -55,7 +80,7 @@ def main(data_path, output_dir, hub_model_id="", use_lora=False, use_4_bit=False
     processor = AutoProcessor.from_pretrained(
         "llava-hf/llava-1.5-7b-hf",
     )
-    processor.chat_template = LLAVA_CHAT_TEMPLATE
+    # processor.chat_template = LLAVA_CHAT_TEMPLATE
     
     ## Load model
 
@@ -139,8 +164,7 @@ def main(data_path, output_dir, hub_model_id="", use_lora=False, use_4_bit=False
         run_name=f"llava-7b-{hub_model_id}",
         report_to="wandb", # wandb or none
         gradient_checkpointing=True,
-        deepspeed="./finetune/zero_stage3_config.json",
-        seed=42
+        deepspeed="./finetune/zero_stage3_config.json"
     )
 
     trainer = Trainer(

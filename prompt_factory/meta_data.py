@@ -1,4 +1,4 @@
-from base import MetaElement, Pattern
+from .base_template_generator import MetaElement, Pattern
 
 ### Please set the "name" of MetaElement the same as the placeholder in the pattern
 ### Have ensured that the first letter of the sentence is capitalized

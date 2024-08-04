@@ -1,5 +1,5 @@
 from meta_data import QUESTION_PATTERNS, CONTEXT_PATTERNS, CHOICES_PATTERNS
-from base import BaseTemplateGenerator, Pattern
+from base_template_generator import BaseTemplateGenerator, Pattern
 import random
 
 def prompt_template_generator(enable_context:bool=True, enable_shuffle: bool=True):
