@@ -8,6 +8,7 @@ from transformers import AutoProcessor, LlavaForConditionalGeneration
 from vqa_datasets import SingleImageQADataset
 from prompt_factory import BaseTemplateGenerator, QUESTION_PATTERNS
 import pandas as pd
+import random
 
 print("===================================================================================")
 print("Visual Instruction Tuning for LLaVa-1.5 is Starting!")
@@ -18,8 +19,6 @@ import deepspeed
 deepspeed.ops.op_builder.CPUAdamBuilder().load()
 
 ## Data Processor
-
-# LLAVA_CHAT_TEMPLATE = """{% if not add_generation_prompt is defined %}{% set add_generation_prompt = false %}{% endif %}{% for message in messages %}{% if message['role'] == 'user' %}USER: {% else %}ASSISTANT: {% endif %}{% for item in message['content'] %}{% if item['type'] == 'text' %}{{ item['text'] }}{% elif item['type'] == 'image' %}<image>{% endif %}{% endfor %}{% if message['role'] == 'user' %} {% else %}{{eos_token}}{% endif %}{% endfor %}{% if add_generation_prompt %}ASSISTANT: {% endif %}"""
 
 from prompt_factory import BaseTemplateGenerator, QUESTION_PATTERNS
 
@@ -39,9 +38,9 @@ def _apply_chat_template(messages: str, add_generation_prompt: bool=False):
     from jinja2 import Environment
     env = Environment()
     env.filters['_render_prompt_template'] = _render_prompt_template
-    LLAVA_CHAT_TEMPLATE = """{% if not add_generation_prompt is defined %}{% set add_generation_prompt = false %}{% endif %}{% for message in messages %}{% if message['role'] == 'user' %}USER: {% else %}\nASSISTANT: {% endif %}{% for item in message['content'] %}{% if item['type'] == 'text' %}{% if message['role'] == 'user' %}{{ item['text'] | _render_prompt_template }}{% else %}{{ item['text'] }}{% endif %}{% elif item['type'] == 'image' %}<image>{% endif %}{% endfor %}{% if message['role'] == 'user' %} {% else %}{{ eos_token }}{% endif %}{% endfor %}{% if add_generation_prompt %}ASSISTANT: {% endif %}"""
+    LLAVA_CHAT_TEMPLATE = """{% if not add_generation_prompt is defined %}{% set add_generation_prompt = false %}{% endif %}{% for message in messages %}{% if message['role'] == 'user' %}USER: {% else %}ASSISTANT: {% endif %}{% for item in message['content'] %}{% if item['type'] == 'text' %}{% if message['role'] == 'user' %}{{ item['text'] | _render_prompt_template }}{% else %}{{ item['text'] }}{% endif %}{% elif item['type'] == 'image' %}<image>{% endif %}{% endfor %}{% if message['role'] == 'user' %} {% else %}{{ eos_token }}{% endif %}{% endfor %}{% if add_generation_prompt %}ASSISTANT: {% endif %}"""
     template = env.from_string(LLAVA_CHAT_TEMPLATE)
-    return template.render(messages=messages, add_generation_prompt=add_generation_prompt, eos_token='<s/>\n').strip()
+    return template.render(messages=messages, add_generation_prompt=add_generation_prompt, eos_token='</s>').strip()
 
 # ## MM Data VSFT
 
@@ -49,9 +48,52 @@ def _apply_chat_template(messages: str, add_generation_prompt: bool=False):
 # mm_images = pd.DataFrame(mm_image_dataset)
 
 class DataCollator:
-    def __init__(self, processor):
+    def __init__(self, processor, enable_mask_instructions: bool=False):
         self.processor = processor
         self.processor.tokenizer.model_max_length = 2048
+        self.enable_mask_instructions = enable_mask_instructions
+        self.IGNORE_INDEX = -100
+
+    def _mask_padding_tokens(self, labels: torch.Tensor):
+        pad_token_id = self.processor.tokenizer.pad_token_id
+        labels[labels == pad_token_id] = self.IGNORE_INDEX
+        return labels
+
+    def _prepare_vsft_labels(self, labels: torch.Tensor):
+
+        eos_token_id = self.processor.tokenizer.convert_tokens_to_ids("</s>")
+        assistant_token_id = self.processor.tokenizer.encode("ASSISTANT:", add_special_tokens=False)
+
+        batch_size, _ = labels.shape
+        
+        for i in range(batch_size):
+
+            # Get positions of all eos tokens
+            eos_positions = (labels[i] == eos_token_id).nonzero(as_tuple=True)[0]
+            # Add 0 to eos_positions; Helpful for loop
+            eos_positions = torch.cat([torch.tensor([0], device=labels.device), eos_positions])
+            
+            # Consider the first special token <s>
+            cur_len = 1
+            labels[i, :cur_len] = self.IGNORE_INDEX
+
+            for j in range(len(eos_positions) - 1):
+                start = eos_positions[j]
+                end = eos_positions[j+1]
+                
+                assistant_pos = None
+                for k in range(start, end - len(assistant_token_id) + 1):
+                    if torch.equal(labels[i, k:k+len(assistant_token_id)], torch.tensor(assistant_token_id, device=labels.device)):
+                        assistant_pos = k
+                        break
+                    
+                if assistant_pos is not None:
+                    labels[i, cur_len:assistant_pos + len(assistant_token_id)] = self.IGNORE_INDEX
+                    cur_len = end + 1
+        
+        masked_labels = self._mask_padding_tokens(labels)
+        
+        return masked_labels
 
     def __call__(self, examples):
         texts = []
@@ -68,8 +110,14 @@ class DataCollator:
         batch = self.processor(text=texts, images=images, return_tensors="pt", truncation=True, padding=True) # lauch truncated
 
         labels = batch["input_ids"].clone()
-        labels[labels == self.processor.tokenizer.pad_token_id] = -100
-        batch["labels"] = labels
+        if self.enable_mask_instructions:
+            # Mask instructions and padding tokens
+            mask_labels = self._prepare_vsft_labels(labels)
+        else:
+            # Only mask padding tokens
+            mask_labels = self._mask_padding_tokens(labels)
+            
+        batch["labels"] = mask_labels
 
         return batch
 
@@ -133,6 +181,14 @@ def main(data_path, output_dir, hub_model_id="", use_lora=False, use_4_bit=False
     dataset = load_dataset(data_path)
     train_dataset, eval_dataset = dataset["train"], dataset["test"]
 
+    # Sample 10k data
+    train_dataset_len = len(train_dataset)
+
+    train_random_indices = random.sample(range(train_dataset_len), 10000)
+
+    train_dataset_10k = train_dataset.select(train_random_indices)
+
+
     ## Data collator
 
     data_collator = DataCollator(processor)
@@ -140,7 +196,7 @@ def main(data_path, output_dir, hub_model_id="", use_lora=False, use_4_bit=False
     ## Training
 
     training_args = TrainingArguments(
-        num_train_epochs=1,
+        num_train_epochs=3,
         per_device_train_batch_size=8,
         per_device_eval_batch_size=4,
         gradient_accumulation_steps=1, # 16 A100 40G
@@ -171,7 +227,7 @@ def main(data_path, output_dir, hub_model_id="", use_lora=False, use_4_bit=False
         model=model,
         args=training_args,
         data_collator=data_collator,
-        train_dataset=train_dataset,
+        train_dataset=train_dataset_10k,
         eval_dataset=eval_dataset,
     )
 

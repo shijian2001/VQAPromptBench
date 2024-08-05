@@ -111,14 +111,14 @@ def experiment(
 
     # save logs to disk
     # ./logs/multi-templates-logs/all_param_6k_templates_4k_mm_data_{vqa_model_name}_eval.json
-    with open(f'./logs/multi-templates-logs/origin_{vqa_model_name}_eval.json', "w", encoding='utf-8') as f:
+    with open(f'./logs/multi-templates-logs/3_epoch_all_param_generator_10k_llava_data_{vqa_model_name}_eval.json', "w", encoding='utf-8') as f:
         json.dump(logs, f, ensure_ascii=False, indent=4)
 
     print(f"{vqa_model_name} evaluations have saved successfully!")
 
 
 experiment(
-    vqa_model_name="llavav1.5-7b",
+    vqa_model_name="llavav1.5-7b-finetuned",
     benchmark_names=["seedbench1"],
     prompt_templates=json.load(open("./prompt_factory/test_vsft_lora.json", "r"))["MultiChoiceImageQa"]
 )
