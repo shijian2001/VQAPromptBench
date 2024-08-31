@@ -1,4 +1,5 @@
 from vqa_datasets import SingleImageQADataset
+from transformers import set_seed
 from vqa_models import ImageQAModel
 from prompt_factory import detailed_imageqa_prompt
 import numpy as np
@@ -6,6 +7,7 @@ from tqdm import tqdm
 from typing import *
 import torch
 import json
+import argparse
 import os, csv
 
 def build_prompt_func(prompt_template: str):
@@ -21,7 +23,8 @@ def build_prompt_func(prompt_template: str):
 def experiment(
         vqa_model_name: str, 
         benchmark_names: List[str], 
-        prompt_templates: List[str]
+        prompt_templates: List[str],
+        seed: int=42
     ):
     """
     - Evaluate just one VQA model on all benchmark datasets with all prompts
@@ -36,6 +39,8 @@ def experiment(
             }
         }
     """
+
+    set_seed(seed=seed)
 
     logs = {}
     logs[vqa_model_name] = {}
@@ -55,6 +60,8 @@ def experiment(
         logs[vqa_model_name][benchmark_name] = {}
         # load datasets
         benchmark = SingleImageQADataset(benchmark_name).get_dataset()
+        # benchmark = benchmark.select([0, 10, 20, 30, 40, 50, 60, 70, 80, 90])
+        print(f"Benchmark Length: {len(benchmark)}")
         # statistics = []
         for i, prompt_template in enumerate(prompt_templates):
             print("===============================================================")
@@ -110,15 +117,23 @@ def experiment(
         #     writer.writerows(statistics)
 
     # save logs to disk
-    # ./logs/multi-templates-logs/all_param_6k_templates_4k_mm_data_{vqa_model_name}_eval.json
-    with open(f'./logs/multi-templates-logs/3_epoch_all_param_generator_10k_llava_data_{vqa_model_name}_eval.json', "w", encoding='utf-8') as f:
+    # ./logs/multi-templates-logs/100_samples_best_3_epoch_mask_259k_llava_data_generator_templates_{vqa_model_name}_eval.json
+    # ./logs/multi-templates-logs/100_samples_{vqa_model_name}_eval.json
+    with open(f'./logs/multi-templates-logs/mmbench/100_samples_{vqa_model_name}_eval.json', "w", encoding='utf-8') as f:
         json.dump(logs, f, ensure_ascii=False, indent=4)
 
     print(f"{vqa_model_name} evaluations have saved successfully!")
 
 
-experiment(
-    vqa_model_name="llavav1.5-7b-finetuned",
-    benchmark_names=["seedbench1"],
-    prompt_templates=json.load(open("./prompt_factory/test_vsft_lora.json", "r"))["MultiChoiceImageQa"]
-)
+if __name__ == "__main__":
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--vqa_model", type=str, required=True, help="VQA Model Name")
+
+    args = parser.parse_args()
+
+    experiment(
+        vqa_model_name=args.vqa_model,
+        benchmark_names=["mmbench"],
+        prompt_templates=json.load(open("./prompt_factory/test_vsft_lora.json", "r"))["MultiChoiceImageQa"],
+        seed=42
+    )

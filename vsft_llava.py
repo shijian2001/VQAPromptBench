@@ -9,6 +9,21 @@ from vqa_datasets import SingleImageQADataset
 from prompt_factory import BaseTemplateGenerator, QUESTION_PATTERNS
 import pandas as pd
 import random
+from functools import wraps
+
+# Fix seed
+def with_fixed_seed(seed):
+    def decorator(func):
+        @wraps(func)
+        def wrapper(*args, **kwargs):
+            state = random.getstate()
+            random.seed(seed)
+            result = func(*args, **kwargs)
+            random.setstate(state)
+            return result
+        return wrapper
+    return decorator
+
 
 print("===================================================================================")
 print("Visual Instruction Tuning for LLaVa-1.5 is Starting!")
@@ -121,7 +136,7 @@ class DataCollator:
 
         return batch
 
-def main(data_path, output_dir, hub_model_id="", use_lora=False, use_4_bit=False):
+def main(data_path, output_dir, hub_model_id="", use_lora=False, use_4_bit=False, n_epoch=1):
 
     ## Load processor
 
@@ -182,21 +197,24 @@ def main(data_path, output_dir, hub_model_id="", use_lora=False, use_4_bit=False
     train_dataset, eval_dataset = dataset["train"], dataset["test"]
 
     # Sample 10k data
-    train_dataset_len = len(train_dataset)
+    # train_dataset_len = len(train_dataset)
 
-    train_random_indices = random.sample(range(train_dataset_len), 10000)
+    # @with_fixed_seed(42)
+    # def get_random_indices():
+    #     return random.sample(range(train_dataset_len), 10000)
+    
+    # train_random_indices = get_random_indices()
 
-    train_dataset_10k = train_dataset.select(train_random_indices)
-
+    # train_dataset_10k = train_dataset.select(train_random_indices)
 
     ## Data collator
 
-    data_collator = DataCollator(processor)
+    data_collator = DataCollator(processor, enable_mask_instructions=True)
 
     ## Training
 
     training_args = TrainingArguments(
-        num_train_epochs=3,
+        num_train_epochs=n_epoch,
         per_device_train_batch_size=8,
         per_device_eval_batch_size=4,
         gradient_accumulation_steps=1, # 16 A100 40G
@@ -208,10 +226,10 @@ def main(data_path, output_dir, hub_model_id="", use_lora=False, use_4_bit=False
         output_dir=output_dir,
         load_best_model_at_end=True,
         save_strategy="steps",
-        save_steps=250,
+        save_steps=1000,
         save_total_limit=2,
         eval_strategy="steps",
-        eval_steps=250,
+        eval_steps=1000,
         metric_for_best_model="eval_loss",
         greater_is_better=False,
         bf16=True,
@@ -227,7 +245,7 @@ def main(data_path, output_dir, hub_model_id="", use_lora=False, use_4_bit=False
         model=model,
         args=training_args,
         data_collator=data_collator,
-        train_dataset=train_dataset_10k,
+        train_dataset=train_dataset,
         eval_dataset=eval_dataset,
     )
 
@@ -247,7 +265,13 @@ if __name__ == "__main__":
     parser.add_argument("--hub_model_id", type=str, help="Huggingface Model ID")
     parser.add_argument("--use_lora", type=bool, help="Lauching lora finetuning")
     parser.add_argument("--use_4_bit", type=bool, help="Launching quantization for training")
+    parser.add_argument("--epoch", '-e', type=int, help="Number of epoches for training.", default=1)
 
     args = parser.parse_args()
 
-    main(args.data_path, args.output_dir, args.hub_model_id, args.use_lora, args.use_4_bit)
+    main(args.data_path, 
+         args.output_dir, 
+         args.hub_model_id, 
+         args.use_lora, 
+         args.use_4_bit, 
+         int(args.epoch))

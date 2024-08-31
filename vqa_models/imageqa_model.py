@@ -20,7 +20,9 @@ imageqa_models = {
 	"instructblip-vicuna13b": ("InstructBlip", "Salesforce/instructblip-vicuna-13b"),
 	"blip2-flant5xxl"       : ("BLIP2", "Salesforce/blip2-flan-t5-xxl"),
 	"llavav1.5-7b"          : ("LLaVA", "llava-hf/llava-1.5-7b-hf"),
-	"llavav1.5-7b-finetuned": ("LLaVA", "/linxindisk/VQAPromptBench/logs/multi-templates-finetuning/all_param_generator_10k_llava_data_3epochs/best_model"),
+	"llavav1.5-7b-trl"      : ("LLaVA", "HuggingFaceH4/vsft-llava-1.5-7b-hf-trl"),
+	"llavav1.5-7b-10k-tune" : ("LLaVA", "/linxindisk/VQAPromptBench/logs/multi-templates-finetuning/mask_instruct_all_param_generator_10k_llava_data_3epochs/best_model"),
+	"llavav1.5-7b-259k-tune": ("LLaVA", "/linxindisk/VQAPromptBench/logs/multi-templates-finetuning/mask_instruct_all_param_generator_259k_llava_data_3epochs/best_model"),
 	"llavav1.5-13b"         : ("LLaVA", "llava-hf/llava-1.5-13b-hf"),
 	"llavav1.6-7b"          : ("LLaVA", "llava-hf/llava-v1.6-vicuna-7b-hf"),
 	"llavav1.6-13b"         : ("LLaVA", "llava-hf/llava-v1.6-vicuna-13b-hf"),
@@ -184,7 +186,17 @@ class LLaVA(QAModelInstance):
 			).to(torch_device).eval()
 			self.processor = LlavaNextProcessor.from_pretrained(ckpt)
 		# Need update after uploading the finetuned model to huggingface
-		elif ckpt == "/linxindisk/VQAPromptBench/logs/multi-templates-finetuning/all_param_generator_10k_llava_data_3epochs/best_model":
+		elif ckpt == "/linxindisk/VQAPromptBench/logs/multi-templates-finetuning/mask_instruct_all_param_generator_10k_llava_data_3epochs/best_model":
+			from transformers import AutoProcessor, LlavaForConditionalGeneration
+			self.model = LlavaForConditionalGeneration.from_pretrained(
+				ckpt,
+				torch_dtype=model_precision,
+				low_cpu_mem_usage=True,
+				device_map="auto"
+			).eval()
+			self.processor = AutoProcessor.from_pretrained("llava-hf/llava-1.5-7b-hf", device_map="auto")
+		# Need update after uploading the finetuned model to huggingface
+		elif ckpt == "/linxindisk/VQAPromptBench/logs/multi-templates-finetuning/mask_instruct_all_param_generator_259k_llava_data_3epochs/best_model":
 			from transformers import AutoProcessor, LlavaForConditionalGeneration
 			self.model = LlavaForConditionalGeneration.from_pretrained(
 				ckpt,
