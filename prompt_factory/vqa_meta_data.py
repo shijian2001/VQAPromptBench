@@ -1,4 +1,4 @@
-from template_generator import MetaElement, Pattern
+from .template_generator import MetaElement, Pattern
 
 ### Please set the "name" of MetaElement the same as the placeholder in the pattern
 ### Have ensured that the first letter of the sentence is capitalized
@@ -129,7 +129,7 @@ QUESTION_PATTERNS = {
 
                         MetaElement("given", ["provided", "given", "presented"]),
                         MetaElement("below", ["below", "here"]),
-                        MetaElement("answer", ["answer", "determine the answer", "respond to", "give your answer", "provide your answer"]),
+                        MetaElement("answer", ["answer", "determine the answer to", "respond to", "give your answer to", "provide your answer to"]),
                         is_line_breaking
                     ]
                 ),
@@ -139,7 +139,7 @@ QUESTION_PATTERNS = {
 
                         MetaElement("given", ["provided", "given", "presented"]),
                         MetaElement("below", ["below", "here"]),
-                        MetaElement("answer", ["answer", "determine the answer", "respond to", "give your answer", "provide your answer"]),
+                        MetaElement("answer", ["answer", "determine the answer to", "respond to", "give your answer to", "provide your answer to"]),
                         MetaElement("considering", ["considering", "based on", "referring to"]),
                         MetaElement("what_you_see", [" ", " what you see in ", " what you have seen in "]),
                         MetaElement("is_provided", [" ", " provided "]),
@@ -246,23 +246,7 @@ QUESTION_PATTERNS = {
                         is_please,
                         is_following
                     ]
-                ),
-                Pattern(
-                    "{is_please}{verb}{what_you_see}the{is_provided_1}{image_1} and {answer} the{is_following}question {related_to} the{is_provided_2}{image_2}:{is_line_breaking}{{question}}", 
-                    [
-                        MetaElement("verb", ["analyze", "refer to", "consider"]), 
-                        MetaElement("what_you_see", [" ", " what you see in ", " what you have seen in "]),
-                        MetaElement("is_provided_1", [" ", " provided "]),
-                        MetaElement("image_1", ["image", "picture"]),
-                        MetaElement("answer", ["answer", "determine the answer to", "respond to", "give your answer to", "provide your answer to"]),
-                        MetaElement("related_to", ["about", "related to", "based on", "concerning", "regarding"]),
-                        MetaElement("is_provided_2", [" ", " provided "]),
-                        MetaElement("image_2", ["image", "picture"]),
-                        is_line_breaking,
-                        is_please,
-                        is_following
-                    ]
-                )   
+                ),   
             ],
             "Joined-By-Semicolons":[
                 Pattern(
@@ -277,23 +261,7 @@ QUESTION_PATTERNS = {
                         is_please,
                         is_following
                     ]
-                ),
-                Pattern(
-                    "{is_please}{verb}{what_you_see}the{is_provided_1}{image_1}; {answer} the{is_following}question {related_to} the{is_provided_2}{image_2}:{is_line_breaking}{{question}}", 
-                    [
-                        MetaElement("verb", ["analyze", "refer to", "consider"]), 
-                        MetaElement("what_you_see", [" ", " what you see in ", " what you have seen in "]),
-                        MetaElement("is_provided_1", [" ", " provided "]),
-                        MetaElement("image_1", ["image", "picture"]),
-                        MetaElement("answer", ["answer", "determine the answer to", "respond to", "give your answer to", "provide your answer to"]),
-                        MetaElement("related_to", ["about", "related to", "based on", "concerning", "regarding"]),
-                        MetaElement("is_provided_2", [" ", " provided "]),
-                        MetaElement("image_2", ["image", "picture"]),
-                        is_line_breaking,
-                        is_please,
-                        is_following
-                    ]
-                )  
+                ),  
             ]
         },
         "Complex":{
@@ -312,22 +280,6 @@ QUESTION_PATTERNS = {
                     ]
                 ),
                 Pattern(
-                    "{verb}{what_you_see}the{is_provided_1}{image_1},{is_please}{answer} the{is_following}question {related_to} the{is_provided_2}{image_2}:{is_line_breaking}{{question}}", 
-                    [
-                        MetaElement("verb", ["Given", "Analyzing", "Referring to", "Considering"]), 
-                        MetaElement("what_you_see", [" ", " what you see in ", " what you have seen in "]),
-                        MetaElement("is_provided_1", [" ", " provided "]),
-                        MetaElement("image_1", ["image", "picture"]),
-                        MetaElement("answer", ["answer", "determine the answer to", "respond to", "give your answer to", "provide your answer to"]),
-                        MetaElement("related_to", ["about", "related to", "based on", "concerning", "regarding"]),
-                        MetaElement("is_provided_2", [" ", " provided "]),
-                        MetaElement("image_2", ["image", "picture"]),
-                        is_line_breaking,
-                        is_please,
-                        is_following
-                    ]
-                ),
-                Pattern(
                     "{prep}{what_you_see}the{is_provided}{image},{is_please}{answer} the{is_following}question:{is_line_breaking}{{question}}", 
                     [
                         MetaElement("prep", ["Based on", "From", "According to"]), 
@@ -340,22 +292,6 @@ QUESTION_PATTERNS = {
                         is_following
                     ]
                 ),
-                Pattern(
-                    "{is_please}{verb}{what_you_see}the{is_provided_1}{image_1} and {answer} the{is_following}question {related_to} the{is_provided_2}{image_2}:{is_line_breaking}{{question}}", 
-                    [
-                        MetaElement("verb", ["analyze", "refer to", "consider"]), 
-                        MetaElement("what_you_see", [" ", " what you see in ", " what you have seen in "]),
-                        MetaElement("is_provided_1", [" ", " provided "]),
-                        MetaElement("image_1", ["image", "picture"]),
-                        MetaElement("answer", ["answer", "determine the answer to", "respond to", "give your answer to", "provide your answer to"]),
-                        MetaElement("related_to", ["about", "related to", "based on", "concerning", "regarding"]),
-                        MetaElement("is_provided_2", [" ", " provided "]),
-                        MetaElement("image_2", ["image", "picture"]),
-                        is_line_breaking,
-                        is_please,
-                        is_following
-                    ]
-                )
             ],
             "Adjective-Clauses":[
                 Pattern(
@@ -387,25 +323,25 @@ CONTEXT_PATTERNS = {
         "Simple":{
             "Subject-Verb-Object":[
                 Pattern(
-                    "The{is_following}{context} {related_to} the{is_provided}{image} {verb} {object}:{is_line_breaking}{{context}}",
+                    "{the_relevant} {context} {related_to} the{is_provided}{image} {verb} {object}:{is_line_breaking}{{context}}",
                     [
+                        MetaElement("the_relevant", ["the", "the relevant"]),
                         MetaElement("context", ["context", "background", "background information", "context information", "hint"]),
-                        MetaElement("related_to", ["about", "related to", "based on", "concerning", "regarding"]),
+                        MetaElement("related_to", ["about", "related to", "concerning", "regarding"]),
                         MetaElement("is_provided", [" ", " provided "]),
                         MetaElement("image", ["image", "picture"]),
                         MetaElement("verb", ["requires", "needs", "calls for"]),
                         MetaElement("object", ["your consideration", "your attention"]),
-                        is_following,
                         is_line_breaking
                     ]
                 ),
             ],
             "Subject-LinkingVerb-Complement":[
-                 # Omit the linking-verb: Context (is)
+                # Omit the linking-verb: Context (is)
                 Pattern(
-                    "{is_relevant}{context}:{is_line_breaking}{{context}}",
+                    "{is_the_relevant} {context}:{is_line_breaking}{{context}}",
                     [
-                        MetaElement("is_relevant", [" ", "relevant", "the relevant"]),
+                        MetaElement("is_the_relevant", [" ", "the", "relevant", "the relevant"]),
                         MetaElement("context", ["context", "background", "background information", "context information", "hint"]),
                         is_line_breaking
                     ]
@@ -413,9 +349,9 @@ CONTEXT_PATTERNS = {
                 Pattern(
                     "{is_the_relevant} {context} {related_to} the{is_provided}{image}{is}{is_line_breaking}{{context}}",
                     [
-                        MetaElement("is_the_relevant", ["the", "the relevant"]),
+                        MetaElement("is_the_relevant", [" ", "the", "relevant", "the relevant"]),
                         MetaElement("context", ["context", "background", "background information", "context information", "hint"]),
-                        MetaElement("related_to", ["about", "related to", "based on", "concerning", "regarding"]),
+                        MetaElement("related_to", ["about", "related to", "concerning", "regarding"]),
                         MetaElement("is_provided", [" ", " provided "]),
                         MetaElement("image", ["image", "picture"]),
                         MetaElement("is", [":", " is:", " is as follows:"]),
@@ -423,19 +359,21 @@ CONTEXT_PATTERNS = {
                     ]
                 ),
                 Pattern(
-                    "{intro} is the {context}:{is_line_breaking}{{context}}",
+                    "{intro} is the{relevant}{context}:{is_line_breaking}{{context}}",
                     [
-                        MetaElement("intro", ["The following", "Here", "Below", "Presented below", "Presented here"]),   
+                        MetaElement("intro", ["The following", "Here", "Below", "Presented below", "Presented here"]),
+                        MetaElement("relevant", [" ", " relevant "]),   
                         MetaElement("context", ["context", "background", "background information", "context information", "hint"]),
                         is_line_breaking
                     ]
                 ),
                 Pattern(
-                    "{intro} is the {context} {related_to} the{is_provided}{image}:{is_line_breaking}{{context}}",
+                    "{intro} is the{relevant}{context} {related_to} the{is_provided}{image}:{is_line_breaking}{{context}}",
                     [
-                        MetaElement("intro", ["The following", "Here", "Below", "Presented below", "Presented here"]),   
+                        MetaElement("intro", ["The following", "Here", "Below", "Presented below", "Presented here"]),
+                        MetaElement("relevant", [" ", " relevant "]),      
                         MetaElement("context", ["context", "background", "background information", "context information", "hint"]),
-                        MetaElement("related_to", ["about", "related to", "based on", "concerning", "regarding"]),
+                        MetaElement("related_to", ["about", "related to", "concerning", "regarding"]),
                         MetaElement("is_provided", [" ", " provided "]),
                         MetaElement("image", ["image", "picture"]),
                         is_line_breaking
@@ -446,49 +384,56 @@ CONTEXT_PATTERNS = {
         "Compound":{
             "Joined-By-Coordinating-Conjunctions":[
                 Pattern(
-                    "The {context} is {given} {below} {conjunction} you should {conider} it for answering the question:{is_line_breaking}{{question}}",
+                    "The{relevant}{context} is {given} {below} {conjunction} you should {verb} it:{is_line_breaking}{{context}}",
                     [
+                        MetaElement("relevant", [" ", " relevant "]),      
                         MetaElement("context", ["context", "background", "background information", "context information", "hint"]),
                         MetaElement("given", ["provided", "given", "presented"]),
                         MetaElement("below", ["below", "here"]),
                         MetaElement("conjunction", ["and", "then"]),
-                        MetaElement("conider", ["consider"]),
+                        MetaElement("verb", ["consider", "pay attention to"]),
                         is_line_breaking
                     ]
                 ),
                 Pattern(
-                    "The question is {given} {below} {conjunction} you should {answer} to the question {related_to} the{is_provided}{image}:{is_line_breaking}{{question}}",
+                    "The{relevant}{context} {related_to} the{is_provided}{image} is {given} {below} {conjunction} you should {verb} it:{is_line_breaking}{{context}}",
                     [
+                        MetaElement("relevant", [" ", " relevant "]),      
+                        MetaElement("context", ["context", "background", "background information", "context information", "hint"]),
+                        MetaElement("related_to", ["about", "related to", "concerning", "regarding"]),
+                        MetaElement("is_provided", [" ", " provided "]),
+                        MetaElement("image", ["image", "picture"]),
                         MetaElement("given", ["provided", "given", "presented"]),
                         MetaElement("below", ["below", "here"]),
                         MetaElement("conjunction", ["and", "then"]),
-                        MetaElement("answer", ["answer", "determine the answer to", "respond to", "give your answer to", "provide your answer to"]),
-                        MetaElement("related_to", ["about", "related to", "based on", "concerning", "regarding"]),
-                        MetaElement("is_provided", [" ", " provided "]),
-                        MetaElement("image", ["image", "picture"]),
+                        MetaElement("verb", ["consider", "pay attention to"]),
                         is_line_breaking
                     ]
                 ),
             ],
             "Joined-By-Semicolons":[
                 Pattern(
-                    "The question is {given} {below}; you should {answer} to the question:{is_line_breaking}{{question}}",
+                    "The{relevant}{context} is {given} {below}; you should {verb} it:{is_line_breaking}{{context}}",
                     [
+                        MetaElement("relevant", [" ", " relevant "]),      
+                        MetaElement("context", ["context", "background", "background information", "context information", "hint"]),
                         MetaElement("given", ["provided", "given", "presented"]),
                         MetaElement("below", ["below", "here"]),
-                        MetaElement("answer", ["answer", "determine the answer to", "respond to", "give your answer to", "provide your answer to"]),
+                        MetaElement("verb", ["consider", "pay attention to"]),
                         is_line_breaking
                     ]
                 ),
                 Pattern(
-                    "The question is {given} {below}; you should {answer} to the question {related_to} the{is_provided}{image}:{is_line_breaking}{{question}}",
+                    "The{relevant}{context} {related_to} the{is_provided}{image} is {given} {below}; you should {verb} it:{is_line_breaking}{{context}}",
                     [
-                        MetaElement("given", ["provided", "given", "presented"]),
-                        MetaElement("below", ["below", "here"]),
-                        MetaElement("answer", ["answer", "determine the answer to", "respond to", "give your answer to", "provide your answer to"]),
-                        MetaElement("related_to", ["about", "related to", "based on", "concerning", "regarding"]),
+                        MetaElement("relevant", [" ", " relevant "]),      
+                        MetaElement("context", ["context", "background", "background information", "context information", "hint"]),
+                        MetaElement("related_to", ["about", "related to", "concerning", "regarding"]),
                         MetaElement("is_provided", [" ", " provided "]),
                         MetaElement("image", ["image", "picture"]),
+                        MetaElement("given", ["provided", "given", "presented"]),
+                        MetaElement("below", ["below", "here"]),
+                        MetaElement("verb", ["consider", "pay attention to"]),
                         is_line_breaking
                     ]
                 ),
@@ -497,11 +442,12 @@ CONTEXT_PATTERNS = {
         "Complex":{
             "Adjective-Clauses":[
                 Pattern(
-                    "The {context} {which} {adjective}{is_provided}image is{is_as_follows}{is_line_breaking}{{context}}",
+                    "The{relevant}{context} {which} {adjective} the{is_provided}image is{is_as_follows}{is_line_breaking}{{context}}",
                     [
+                        MetaElement("relevant", [" ", " relevant "]),      
                         MetaElement("context", ["context", "background", "background information", "context information", "hint"]),
                         MetaElement("which", ["which", "that"]),
-                        MetaElement("adjective", ["is based on the", "is related to the", "you should refer to the", "you should consider the"]),
+                        MetaElement("adjective", ["is about", "is related to"]),
                         MetaElement("is_provided", [" ", " provided "]),
                         MetaElement("is_as_follows",[":", " as follows:"]),
                         is_line_breaking
@@ -517,44 +463,53 @@ CONTEXT_PATTERNS = {
                 Pattern(
                     "{is_please}{verb} the{is_following}{context}:{is_line_breaking}{{context}}",
                     [   
-                        MetaElement("verb", ["Consider", "Given"]),
+                        MetaElement("verb", ["consider", "pay attention to"]),
                         MetaElement("context", ["context", "background", "background information", "context information", "hint"]),
                         is_please,
                         is_following,
                         is_line_breaking
                     ]
                 ),
+                Pattern(
+                    "{is_please}{verb} the{is_following}{context} {related_to} the{is_provided}{image}:{is_line_breaking}{{context}}",
+                    [   
+                        MetaElement("verb", ["consider", "pay attention to"]),
+                        MetaElement("context", ["context", "background", "background information", "context information", "hint"]),
+                        MetaElement("related_to", ["about", "related to", "concerning", "regarding"]),
+                        MetaElement("is_provided", [" ", " provided "]),
+                        MetaElement("image", ["image", "picture"]),
+                        is_please,
+                        is_following,
+                        is_line_breaking
+                    ]
+                ),
             ],
-            "Subject-LinkingVerb-Complement":[
-
-            ],
-            "Subject-Verb-IndirectObject-DirectObject":[
-
-            ],
-            "Subject-Verb-Object-Complement":[
-
-            ],
-        },
-        "Compound":{
-            "Joined-By-Coordinating-Conjunctions":[
-
-            ],
-            "Joined-By-Semicolons":[
-
-            ],
-            "Joined-By-Conjunctive-Adverbs":[
-
-            ]
         },
         "Complex":{
-            "Noun-Clauses":[
-
-            ],
             "Adverbial-Clauses":[
-
+                Pattern(
+                    "Given the{is_following}{context}:{is_line_breaking}{{context}}",
+                    [   
+                        MetaElement("context", ["context", "background", "background information", "context information", "hint"]),
+                        is_following,
+                        is_line_breaking
+                    ]
+                ),
             ],
             "Adjective-Clauses":[
-
+                Pattern(
+                    "{is_please}{verb} the {context} {which} {adjective} the{is_provided}{image}:{is_line_breaking}{{context}}",
+                    [
+                        MetaElement("verb", ["consider", "pay attention to"]),
+                        MetaElement("context", ["context", "background", "background information", "context information", "hint"]),
+                        MetaElement("which", ["which", "that"]),
+                        MetaElement("adjective", ["is about", "is related to"]),
+                        MetaElement("is_provided", [" ", " provided "]),
+                        MetaElement("image", ["image", "picture"]),
+                        is_please,
+                        is_line_breaking
+                    ]
+                )
             ],
         },
     }
@@ -569,112 +524,152 @@ CHOICES_PATTERNS = {
     ],
     "Declarative":{
         "Simple":{
-            "Subject-Predicate":[
-                # Omit the predicate: Choices (are)
+            "Subject-LinkingVerb-Complement":[
+                # Omit the linkingVerb: Choices (are)
                 Pattern(
-                    "{choices}:{is_line_breaking}{{choices}}",
+                    "{is_the}{is_available}{choices}{are}{is_line_breaking}{{choices}}",
                     [
-                        MetaElement("choices", ["Choices", "Options", "Selections"]),
+                        MetaElement("is_the", [" ", "the"]),
+                        MetaElement("is_available", [" ", " available ", " potential ", " possible "]),
+                        MetaElement("choices", ["choices", "options", "selections"]),
+                        MetaElement("are", [":", " are:"]),
                         is_line_breaking
                     ]
                 ),
                 Pattern(
-                    "{adv} are the {choices}:{is_line_breaking}{{choices}}",
+                    "{is_the}{is_available}{choices} are as follows:{is_line_breaking}{{choices}}",
                     [
-                        MetaElement("adv", ["Here", "Below"]),
+                        MetaElement("is_the", [" ", "the"]),
+                        MetaElement("is_available", [" ", " available ", " potential ", " possible "]),
+                        MetaElement("choices", ["choices", "options", "selections"]),
+                        is_line_breaking
+                    ]
+                ),
+                Pattern(
+                    "{is_the}{is_available}{choices} are {provided}{below}{is_line_breaking}{{choices}}",
+                    [
+                        MetaElement("is_the", [" ", "the"]),
+                        MetaElement("is_available", [" ", " available ", " potential ", " possible "]),
+                        MetaElement("choices", ["choices", "options", "selections"]),
+                        MetaElement("provided", ["provided", "offered", "presented", "listed"]),
+                        MetaElement("below", [":", " below:", " here:", " as follows:"]),
+                        is_line_breaking
+                    ]
+                ),
+                Pattern(
+                    "{adv} are the{is_available}{choices}:{is_line_breaking}{{choices}}",
+                    [
+                        MetaElement("adv", ["The following", "Here", "Below", "Presented below", "Presented here"]),
+                        MetaElement("is_available", [" ", " available ", " potential ", " possible "]),
                         MetaElement("choices", ["choices", "options", "selections"]),
                         is_line_breaking
                     ]
                 ),
             ],
-            "Subject-Verb-Object":[
-
-            ],
-            "Subject-LinkingVerb-Complement":[
-
-            ],
-            "Subject-Verb-Indirect Object-Direct Object":[
-
-            ],
-            "Subject-Verb-Object-Complement":[
-
-            ],
         },
         "Compound":{
             "Joined-By-Coordinating-Conjunctions":[
-
+                Pattern(
+                    "{is_the}{is_available}{choices} are {provided} {below} {conjunction} you should {verb} {object}:{is_line_breaking}{{choices}}",
+                    [
+                        MetaElement("is_the", [" ", "the"]),
+                        MetaElement("is_available", [" ", " available ", " potential ", " possible "]),
+                        MetaElement("choices", ["choices", "options", "selections"]),
+                        MetaElement("provided", ["provided", "offered", "presented", "listed"]),
+                        MetaElement("below", ["below", "here", "as follows"]),
+                        MetaElement("conjunction", ["and", "then"]),
+                        MetaElement("verb", ["select", "choose", "pick"]),
+                        MetaElement("object", ["the best one", "the best fit", "the best answer"]),
+                        is_line_breaking
+                    ]
+                ),
             ],
             "Joined-By-Semicolons":[
-
+                Pattern(
+                    "{is_the}{is_available}{choices} are {provided} {below}; you should {verb} {object}:{is_line_breaking}{{choices}}",
+                    [
+                        MetaElement("is_the", [" ", "the"]),
+                        MetaElement("is_available", [" ", " available ", " potential ", " possible "]),
+                        MetaElement("choices", ["choices", "options", "selections"]),
+                        MetaElement("provided", ["provided", "offered", "presented", "listed"]),
+                        MetaElement("below", ["below", "here", "as follows"]),
+                        MetaElement("verb", ["select", "choose", "pick"]),
+                        MetaElement("object", ["the best one", "the best fit", "the best answer"]),
+                        is_line_breaking
+                    ]
+                ),
             ],
-            "Joined-By-Conjunctive-Adverbs":[
-
-            ]
         },
         "Complex":{
-            "Noun-Clauses":[
-
-            ],
-            "Adverbial-Clauses":[
-
-            ],
             "Adjective-Clauses":[
-
-            ],
-        },
-    },
-    "Interrogative":{
-        "Simple":{
-            "Subject-Predicate":[
-
-            ],
-            "Subject-Verb-Object":[
-
-            ],
-            "Subject-LinkingVerb-Complement":[
-
-            ],
-            "Subject-Verb-Indirect Object-Direct Object":[
-
-            ],
-            "Subject-Verb-Object-Complement":[
-
-            ],
-        },
-        "Compound":{
-            "Joined-By-Coordinating-Conjunctions":[
-
-            ],
-            "Joined-By-Semicolons":[
-
-            ],
-            "Joined-By-Conjunctive-Adverbs":[
-
-            ]
-        },
-        "Complex":{
-            "Noun-Clauses":[
-
-            ],
-            "Adverbial-Clauses":[
-
-            ],
-            "Adjective-Clauses":[
-
+                Pattern(
+                    "{is_the}{is_available}{choices} {which} include only one {correct} answer{are}{is_line_breaking}{{choices}}",
+                    [
+                        MetaElement("is_the", [" ", "the"]),
+                        MetaElement("is_available", [" ", " available ", " potential ", " possible "]),
+                        MetaElement("choices", ["choices", "options", "selections"]),
+                        MetaElement("which", ["which", "that"]),
+                        MetaElement("correct", ["correct", "best", "most situable"]),
+                        MetaElement("are", [":", " are:"]),
+                        is_line_breaking
+                    ]
+                ),
+                Pattern(
+                    "{is_the}{is_available}{choices} {which} include only one {correct} answer are as follows:{is_line_breaking}{{choices}}",
+                    [
+                        MetaElement("is_the", [" ", "the"]),
+                        MetaElement("is_available", [" ", " available ", " potential ", " possible "]),
+                        MetaElement("choices", ["choices", "options", "selections"]),
+                        MetaElement("which", ["which", "that"]),
+                        MetaElement("correct", ["correct", "best", "most situable"]),
+                        is_line_breaking
+                    ]
+                ),
+                Pattern(
+                    "{is_the}{is_available}{choices} {which} include only one {correct} answer are {provided}{below}{is_line_breaking}{{choices}}",
+                    [
+                        MetaElement("is_the", [" ", "the"]),
+                        MetaElement("is_available", [" ", " available ", " potential ", " possible "]),
+                        MetaElement("choices", ["choices", "options", "selections"]),
+                        MetaElement("which", ["which", "that"]),
+                        MetaElement("correct", ["correct", "best", "most situable"]),
+                        MetaElement("provided", ["provided", "offered", "presented", "listed"]),
+                        MetaElement("below", [":", " below:", " here:", " as follows:"]),
+                        is_line_breaking
+                    ]
+                ),
+                Pattern(
+                    "{adv} are the{is_available}{choices} {which} include only one {correct} answer:{is_line_breaking}{{choices}}",
+                    [
+                        MetaElement("adv", ["The following", "Here", "Below", "Presented below", "Presented here"]),
+                        MetaElement("is_available", [" ", " available ", " potential ", " possible "]),
+                        MetaElement("choices", ["choices", "options", "selections"]),
+                        MetaElement("which", ["which", "that"]),
+                        MetaElement("correct", ["correct", "best", "most situable"]),
+                        is_line_breaking
+                    ]
+                ),
             ],
         },
     },
     "Imperative":{
         "Simple":{
             "Subject-Predicate":[
-
+                Pattern(
+                    "{is_please}{verb} from:{choice}{{choices}}",
+                    [
+                        MetaElement("verb", ["pick", "select", "choose"]),
+                        MetaElement("choice", ["\nChoices: ", "\nOptions: ", "\n"]),
+                        is_please
+                    ]
+                )
             ],
             "Subject-Verb-Object":[
                 # Omit the subject
                 Pattern(
-                    "{verb} the{adj}{answer}{from}{to} the question.{choice}{{choices}}",
+                    "{is_please}{verb} the{adj}{answer}{from}{to} the question.{choice}{{choices}}",
                     [
-                        MetaElement("verb", ["Make", "Pick", "Indicate", "Select", "Choose"]),
+                        MetaElement("verb", ["make", "pick", "indicate", "select", "choose"]),
                         MetaElement("adj", [" right ", " correct ", " accurate ", " "]),
                         MetaElement("answer", ["answer", "choice", "option", "response", "solution"]),
                         MetaElement("from", [
@@ -683,617 +678,43 @@ CHOICES_PATTERNS = {
                             " from the choices below ", " from the options below ", 
                             " from the available choices ", " from the available options ", " "
                         ]),
-                        MetaElement("to", ["to correctly answer", "to answer", "to address", "to respond to"]),
+                        MetaElement("to", [
+                            "to correctly answer", "to answer", 
+                            "to correctly address", "to address", 
+                            "to correctly respond to", "to respond to"
+                        ]),
                         MetaElement("choice", ["\nChoices: ", "\nOptions: ", "\n"]),
+                        is_please
                     ]
                 )
             ],
-            "Subject-LinkingVerb-Complement":[
-
-            ],
-            "Subject-Verb-Indirect Object-Direct Object":[
-
-            ],
-            "Subject-Verb-Object-Complement":[
-
-            ],
-        },
-        "Compound":{
-            "Joined-By-Coordinating-Conjunctions":[
-
-            ],
-            "Joined-By-Semicolons":[
-
-            ],
-            "Joined-By-Conjunctive-Adverbs":[
-
-            ]
         },
         "Complex":{
-            "Noun-Clauses":[
-
-            ],
-            "Adverbial-Clauses":[
-
-            ],
             "Adjective-Clauses":[
-
+                Pattern(
+                    "{is_please}{verb} the{adj}{answer}{from}{which} include only one {correct} answer{to} the question.{choice}{{choices}}",
+                    [
+                        MetaElement("verb", ["make", "pick", "indicate", "select", "choose"]),
+                        MetaElement("adj", [" right ", " correct ", " accurate ", " "]),
+                        MetaElement("answer", ["answer", "choice", "option", "response", "solution"]),
+                        MetaElement("from", [
+                            " from the provided options ", " from the options given ",
+                            " from the provided choices ", " from the choices given ", 
+                            " from the choices below ", " from the options below ", 
+                            " from the available choices ", " from the available options ", " "
+                        ]),
+                        MetaElement("which", ["which", "that"]),
+                        MetaElement("correct", ["correct", "best", "most situable"]),
+                        MetaElement("to", [
+                            "to correctly answer", "to answer", 
+                            "to correctly address", "to address", 
+                            "to correctly respond to", "to respond to"
+                        ]),
+                        MetaElement("choice", ["\nChoices: ", "\nOptions: ", "\n"]),
+                        is_please
+                    ]
+                )
             ],
         },
     }
 }
-
-# Basic context patterns
-CONTEXT_PATTERNS = [
-
-    ##2.2 复合句
-    ##2.2.1 使用并列词连接
-
-    # Pattern(
-    #     "The {subject} is {participle} {conjunction} {clause2}.{is_line_breaking}{{context}}",
-    #     [
-    #         MetaElement("subject", ["context", "information", "background"]),
-    #         MetaElement("participle", ["provided", "given"]),
-    #         MetaElement("conjunction", ["and", "then"]),
-    #         MetaElement("clause2", ["you should consider it carefully", "it should be considered thoroughly", "you should ensure it is thoroughly understood"]),
-    #         is_line_breaking
-    #     ]
-    # ),
-
-    ##2.2.2 使用分号连接
-    # Pattern(
-    #     "The {subject} is {participle}; {clause2}.{is_line_breaking}{{context}}",
-    #     [
-    #         MetaElement("subject", ["context", "information", "background"]),
-    #         MetaElement("participle", ["provided", "given"]),
-    #         MetaElement("clause2", ["you should consider it carefully", "it should be considered thoroughly", "you should ensure it is thoroughly understood"]),
-    #         is_line_breaking
-    #     ]
-    # ),
-
-    ##2.4 复杂性从句
-    ##2.4.1 名词性从句
-    # Pattern(
-    #         "You should {verb1} what the {subject} {verb2}.{is_line_breaking}{{context}}",
-    #         [
-    #             MetaElement("verb", ["reflect on", "consider", "think about", "read", "look at", "focus on", "pay attention to"]),
-    #             MetaElement("subject", ["context", "information", "background"]),
-    #             MetaElement("verb2", ["explains", "talks about", "implies"]),
-    #             is_line_breaking
-    #         ]
-    #     ),
-
-    #2.4.3 形容词性从句
-    # Pattern(
-    #     "you should {verb} the {object} which {adjective_clause}.{is_line_breaking}{{context}}",
-    #     [
-    #         MetaElement("verb", ["reflect on", "consider", "think about", "read", "look at", "focus on", "pay attention to"]),
-    #         MetaElement("object", ["context", "information", "background"]),
-    #         MetaElement("adjective_clause", ["provides the necessary details", "is most relevant to your answer"]),
-    #         is_line_breaking
-    #     ]
-    # )
-
-    ##3 祈使句
-    ##3.1 简单句
-    ##3.1.1 主谓
-    # Pattern(
-    #     "{is_please}{verb}:{is_line_breaking}{{context}}",
-    #     [
-    #         MetaElement("verb", ["reflect on", "consider", "think about", "read", "look at", "focus on", "pay attention to"]),
-    #         is_please,
-    #         is_line_breaking
-    #     ]
-    # )
-
-    ##3.1.2 主谓宾
-    # Pattern(
-    #     "{is_please}{verb} the{is_following}{context}:{is_line_breaking}{{context}}",
-    #     [
-    #         MetaElement("verb", ["reflect on", "consider", "think about", "read", "look at", "focus on", "pay attention to"]),
-    #         MetaElement("context", ["context", "background", "information"]),
-    #         is_please,
-    #         is_line_breaking,
-    #         is_following
-    #     ]
-    # ),
-
-    ##3.2 复合句
-    ##3.2.1 使用并列连词连接
-    # Pattern(
-    #     "{is_please}{verb} the{is_following}{context} and {clause2}.{is_line_breaking}{{context}}",
-    #     [
-    #         MetaElement("verb", ["reflect on", "consider", "think about", "read", "look at", "focus on", "pay attention to"]),
-    #         MetaElement("context", ["context", "background", "information"]),
-    #         MetaElement("clause2", ["dive deeper into the details", "ensure all aspects are covered"]),
-    #         is_following,
-    #         is_please,
-    #         is_line_breaking
-    #     ]
-    # ),
-
-    ##3.2.2 使用分号连接
-
-    # Pattern(
-    #     "{is_please}{verb} the{is_following}{context}; {clause2}.{is_line_breaking}{{context}}",
-    #     [
-    #         MetaElement("verb", ["reflect on", "consider", "think about", "read", "look at", "focus on", "pay attention to"]),
-    #         MetaElement("context", ["context", "background", "information"]),
-    #         MetaElement("clause2", ["dive deeper into the details", "ensure all aspects are covered"]),
-    #         is_following,
-    #         is_please,
-    #         is_line_breaking
-    #     ]
-    # ),
-
-    ##3.2.3 使用分号和过渡词连接
-    # Pattern(
-    #         "{is_please}{verb} the{is_following}{context}; {conj}, {clause2}.{is_line_breaking}{{context}}",
-    #         [
-    #             MetaElement("verb", ["reflect on", "consider", "think about", "read", "look at", "focus on", "pay attention to"]),
-    #             MetaElement("context", ["context", "background", "information"]),
-    #             MetaElement("conj", ["then", "and"]),
-    #             MetaElement("clause2", ["dive deeper into the details", "ensure all aspects are covered"]),
-    #             is_following,
-    #             is_please,
-    #             is_line_breaking
-    #         ]
-    #     ),
-
-    ##3.3 复杂句
-    ##3.3.1 名词性从句
-    # Pattern(
-    #         "{is_please}{verb1} what the {subject} {verb2}.{is_line_breaking}{{question}}",
-    #         [
-    #             MetaElement("verb1", ["reflect on", "consider", "think about", "read", "look at", "focus on", "pay attention to"]),
-    #             MetaElement("subject", ["context", "background", "information"]),
-    #             MetaElement("verb2", ["explains", "talks about", "implies"]),
-    #             is_please,
-    #             is_line_breaking
-    #         ]
-    #     ),
-
-
-    ##3.3.2 副词性从句
-    # Pattern(
-    #     "{is_please}{verb1} the {object} after you {verb2} it.{is_line_breaking}{{context}}",
-    #     [
-    #         MetaElement("verb1", ["understand", "go through"]),
-    #         MetaElement("object", ["context", "information", "background"]),
-    #         MetaElement("verb2", ["have read", "finish reading"]),
-    #         is_please,
-    #         is_line_breaking
-    #     ]
-    # ),
-
-    ##形容词性从句
-    # Pattern(
-    #         "{is_please}{verb} the {object} that {adjective_clause}.{is_line_breaking}{{context}}",
-    #         [
-    #             MetaElement("verb", ["use", "reflect on", "consider", "think about", "read", "look at", "focus on", "pay attention to"]),
-    #             MetaElement("object", ["background", "context", "information"]),
-    #             MetaElement("adjective_clause", ["explains the key points", "is essential for your analysis"]),
-    #             is_please,
-    #             is_line_breaking
-    #         ]
-    #     ),
-
-
-]
-
-# Basic chpices patterns
-
-CHOICES_PATTERNS = [
-    ##1 无
-    # Pattern(
-    #     "{{choices}}"
-    # ),
-    ##2 陈述句
-    ##2.1 简单句
-    ##2.1.1 主谓
-    #
-    # Pattern(
-    #     "{choices}:{is_line_breaking}{{choices}}",
-    #     [
-    #         MetaElement("choices", ["Choices", "Options", "Selections"]),
-    #         is_line_breaking
-    #     ]
-    # ),
-
-    ##2.1.2 主谓宾
-    # Pattern(
-    #     "{pointer} {subject} {verb} available answers.{is_line_breaking}{{choices}}",
-    #     [
-    #         MetaElement("pointer", ["the", "these"]),
-    #         MetaElement("subject", ["options", "choices", "selections"]),
-    #         MetaElement("verb", ["provide", "give", "show", "display"]),
-    #         is_line_breaking
-    #     ]
-    # ),
-
-    #2.1.3 主系表
-
-    # Pattern(
-    #     "{adv} are the {choices}:{is_line_breaking}{{choices}}",
-    #     [
-    #         MetaElement("adv", ["Here", "Below"]),
-    #         MetaElement("choices", ["choices", "options", "selections"]),
-    #         is_line_breaking
-    #     ]
-    # ),
-
-    ##2.1.4 主谓双宾
-    ##无
-
-    ##2.1.5 主谓宾补 （不行就删）
-    # Pattern(
-    #     "{pointer} {subject} {verb} {object} {complement}.{is_line_breaking}{{choices}}",
-    #     [
-    #         MetaElement("pointer", ["the", "these"]),
-    #         MetaElement("subject", ["options", "choices", "selections"]),
-    #         MetaElement("verb", ["make", "render"]),
-    #         MetaElement("object", ["the decision", "the selection"]),
-    #         MetaElement("complement", ["clear", "easier"]),
-    #         is_line_breaking
-    #     ]
-    # )
-
-    ##2.2 复合句
-    ##2.2.1 使用并列词连接
-    # Pattern(
-    #     "{pointer} {subject} are {participle} {conjunction} you should {verb} {object}.{is_line_breaking}{{choices}}",
-    #     [
-    #         MetaElement("pointer", ["The", "These"]),
-    #         MetaElement("subject", ["options", "choices", "selections"]),
-    #         MetaElement("participle", ["provided", "listed below"]),
-    #         MetaElement("conjunction", ["and", "then","therefore", "moreover"]),
-    #         MetaElement("verb", ["select", "choose"]),
-    #         MetaElement("object", ["the best one", "carefully", "the best fit", "the right answer"]),
-    #         is_line_breaking
-    #     ]
-    # ),
-
-    ##2.2.2 使用分号连接
-
-    # Pattern(
-    #     "{pointer} {subject} are {participle}; you should {verb} {object}.{is_line_breaking}{{choices}}",
-    #     [
-    #         MetaElement("pointer", ["The", "These"]),
-    #         MetaElement("subject", ["options", "choices", "selections"]),
-    #         MetaElement("participle", ["provided", "listed below"]),
-    #         MetaElement("verb", ["select", "choose"]),
-    #         MetaElement("object", ["the best one", "carefully", "the best fit", "the right answer"]),
-    #         is_line_breaking
-    #     ]
-    # ),
-
-    ##2.2.3 使用分号和过渡词连接
-    # Pattern(
-    #     "{pointer} {subject} are {participle}; {conjunction}, you should {verb} {object}.{is_line_breaking}{{choices}}",
-    #     [
-    #         MetaElement("pointer", ["The", "These"]),
-    #         MetaElement("subject", ["options", "choices", "selections"]),
-    #         MetaElement("participle", ["provided", "listed below"]),
-    #         MetaElement("conjunction", ["and", "then", "therefore", "moreover"]),
-    #         MetaElement("verb", ["select", "choose"]),
-    #         MetaElement("object", ["the best one", "carefully", "the best fit", "the right answer"]),
-    #         is_line_breaking
-    #     ]
-    # ),
-
-
-    ##2.4 复杂句
-    ##2.4.1 名词性从句
-    # Pattern(
-    #     "you should {verb} that {noun_clause}.{is_line_breaking}{{choices}}",
-    #     [
-    #         MetaElement("verb", ["ensure", "make sure"]),
-    #         MetaElement("noun_clause", ["you consider all the options", "your choice is the best"]),
-    #         is_line_breaking
-    #     ]
-    # ),
-
-    ##2.4.2 副词性从句
-    # Pattern(
-    #         "{main_clause} when {accessory_clause}.{is_line_breaking}{{choices}}",
-    #         [
-    #             MetaElement("main_clause", ["you should select the correct option", "you should make your choice"]),
-    #             MetaElement("time_clause", ["you have considered all options", "you are ready"]),
-    #             is_line_breaking
-    #         ]
-    #     ),
-
-
-    ##2.4.3 形容词性从句
-    # Pattern(
-    #         "you should {verb} {article} {object} that {adjective_clause}.{is_line_breaking}{{choices}}",
-    #         [
-    #             MetaElement("verb", ["pick", "decide on", "select"]),
-    #             MetaElement("article", ["the", "your"]),
-    #             MetaElement("object", ["choice", "option"]),
-    #             MetaElement("adjective_clause", ["best answers the question", "addresses the question most effectively"]),
-    #             is_line_breaking
-    #         ]
-    #     ),
-
-    ##3 祈使句
-    ## 3.1 简单句
-    ## 3.1.1 主谓
-    # Pattern(
-    #     "{is_please}{verb}.{is_line_breaking}{{choices}}",
-    #     [
-    #         MetaElement("verb", ["choose", "select", "decide"]),
-    #         is_please,
-    #         is_line_breaking
-    #     ]
-    # ),
-
-    ## 3.1.2 主谓宾
-    # Pattern(
-    #         "{is_please}{verb} your preferred {answer}:{is_line_breaking}{{choices}}",
-    #         [
-    #             MetaElement("verb", ["indicate", "identify", "determine", "choose", "select"]),
-    #             MetaElement("answer", ["answer", "choice", "option", "response", "solution"]),
-    #             is_please,
-    #             is_line_breaking
-    #         ]
-    #     ),
-# Pattern(
-    #     "{is_please}{verb} the{adj}{answer}{from}{to} the question.{choice}{{choices}}",
-    #     [
-    #         MetaElement("verb", ["Make", "Pick", "Indicate", "Select", "Choose"]),
-    #         MetaElement("adj", [" right ", " correct ", " accurate ", " "]),
-    #         MetaElement("answer", ["answer", "choice", "option", "response", "solution"]),
-    #         MetaElement("from", [
-    #             " from the provided options ", " from the options given ",
-    #             " from the provided choices ", " from the choices given ",
-    #             " from the choices below ", " from the options below ",
-    #             " from the available choices ", " from the available options ", " "
-    #         ]),
-    #         MetaElement("to", ["to correctly answer", "to answer", "to address", "to respond to"]),
-    #         MetaElement("choice", ["\nChoices: ", "\nOptions: ", "\n"]),
-    #         is_please
-    #     ]
-    # ),
-
-
-    ## 3.1.3 主系表
-    ##无
-
-    ## 3.1.4 主谓双宾
-    ## 无
-
-    ## 3.1.5 主谓宾补
-    ##无
-
-    ##3.2 复合句
-    ##3.2.1 使用并列连词连接
-    # Pattern(
-    #     "{is_please}{main_clause} {conj} {second_clause}.{is_line_breaking}{{choices}}",
-    #     [
-    #         MetaElement("main_clause", [
-    #             "consider all the options",
-    #             "analyze the available options",
-    #             "examine each option"
-    #         ]),
-    #         MetaElement("conj", ["and", "then"]),
-    #         MetaElement("second_clause", [
-    #             "make your selection carefully",
-    #             "pick the most suitable answer",
-    #             "decide wisely",
-    #             "choose the best possible outcome"
-    #         ]),
-    #         is_please,
-    #         is_line_breaking,
-    #     ]
-    # ),
-
-    ##3.2.2 使用分号连接
-    # Pattern(
-    #         "{is_please}{main_clause}; {second_clause}.{is_line_breaking}{{choices}}",
-    #         [
-    #             MetaElement("main_clause", [
-    #                 "consider all the options",
-    #                 "analyze the available options",
-    #                 "examine each option"
-    #             ]),
-    #             MetaElement("second_clause", [
-    #                 "make your selection carefully",
-    #                 "pick the most suitable answer",
-    #                 "decide wisely",
-    #                 "choose the best possible outcome"
-    #             ]),
-    #             is_please,
-    #             is_line_breaking,
-    #         ]
-    #     ),
-    ## 3.2.3 使用分号和连词连接
-
-    # Pattern(
-    #         "{is_please}{main_clause}; {conj}, {second_clause}.{is_line_breaking}{{choices}}",
-    #         [
-    #             MetaElement("main_clause", [
-    #                 "consider all the options",
-    #                 "analyze the available options",
-    #                 "examine each option"
-    #             ]),
-    #             MetaElement("conj", ["and", "then"]),
-    #             MetaElement("second_clause", [
-    #                 "make your selection carefully",
-    #                 "pick the most suitable answer",
-    #                 "decide wisely",
-    #                 "choose the best possible outcome"
-    #             ]),
-    #             is_please,
-    #             is_line_breaking,
-    #         ]
-    #     ),
-
-    ##3.3 复杂句
-    ##3.3.1 名词性从句
-    # Pattern(
-    #         "{is_please}{verb} that {noun_clause}.{is_line_breaking}{{choices}}",
-    #         [
-    #             MetaElement("verb", ["ensure", "make sure"]),
-    #             MetaElement("noun_clause", ["you consider all the options", "your choice is the best"]),
-    #             is_please,
-    #             is_line_breaking
-    #         ]
-    #     ),
-    #
-    ##3.3.2 副词性从句
-        # Pattern(
-        #     "{is_please}{main_clause} when {accessory_clause}.{is_line_breaking}{{choices}}",
-        #     [
-        #         MetaElement("main_clause", ["select the correct option", "make your choice"]),
-        #         MetaElement("accessory_clause", ["you have considered all options", "you are ready"]),
-        #         is_please,
-        #         is_line_breaking
-        #     ]
-        # ),
-
-    ##3.3.3 形容词性从句
-
-    # Pattern(
-    #         "{is_please}{verb} {article} {object} that {adjective_clause}.{is_line_breaking}{{choices}}",
-    #         [
-    #             MetaElement("verb", ["pick", "decide on", "select"]),
-    #             MetaElement("article", ["the", "your"]),
-    #             MetaElement("object", ["choice", "option"]),
-    #             MetaElement("adjective_clause", ["best answers the question", "addresses the question most effectively"]),
-    #             is_please,
-    #             is_line_breaking
-    #         ]
-    #     ),
-
-    ##4 疑问句
-    ##4.1 简单句
-    ##4.1.1 主谓
-    ##无
-
-    ##4.1.2 主谓宾
-    # Pattern(
-    #     "{aux_verb} you {verb} the {adj} {object}?{is_line_breaking}{{choices}}",
-    #     [
-    #         MetaElement("aux_verb", ["Do", "Can", "Could"]),
-    #         MetaElement("verb", ["select", "choose", "pick"]),
-    #         MetaElement("adj", ["correct", "best", "right", "most suitable"]),
-    #         MetaElement("object", ["option", "solution", "choice", "answer"]),
-    #         is_line_breaking
-    #     ]
-    # ),
-
-    ##4.1.3 主系表
-    # Pattern(
-    #     "{interrogative} {linking_verb} the {adj} {object}?{is_line_breaking}{{choices}}",
-    #     [
-    #         MetaElement("interrogative", ["which", "what"]),
-    #         MetaElement("linking_verb", ["is", "would be", "seems to be"]),
-    #         MetaElement("adj", ["correct", "best", "right", "most suitable"]),
-    #         MetaElement("object", ["option", "solution", "choice", "answer"]),
-    #         is_line_breaking
-    #     ]
-    # ),
-
-    ##4.1.4 主谓双宾
-    # Pattern(
-    #     "{aux_verb} {pointer} {subject} {verb} you the {adj} {object}?{is_line_breaking}{{choices}}",
-    #     [
-    #         MetaElement("aux_verb", ["Do", "Can", "Could"]),
-    #         MetaElement("pointer", ["the", "these"]),
-    #         MetaElement("subject", ["options", "choices", "selections"]),
-    #         MetaElement("verb", ["provide", "give", "offer"]),
-    #         MetaElement("adj", ["correct", "best", "right", "most suitable"]),
-    #         MetaElement("object", ["option", "solution", "choice", "answer"]),
-    #         is_line_breaking
-    #     ]
-    # ),
-
-    ##4.1.5 主谓宾补
-    ##无
-
-    ##4.2 复合句
-    ##4.2.1 使用并列连词连接
-    # Pattern(
-    #     "{modal} you {verb1} {pointer} {object1} and {modal} you {verb2} the {adj} {object2}?{is_line_breaking}{{choices}}",
-    #     [
-    #         MetaElement("modal", ["Can", "Could"]),
-    #         MetaElement("verb1", ["consider", "think about"]),
-    #         MetaElement("pointer", ["the", "these"]),
-    #         MetaElement("object1", ["options", "choices", "selections"]),
-    #         MetaElement("verb2", ["select", "choose"]),
-    #         MetaElement("adj", ["correct", "best", "right", "most suitable"]),
-    #         MetaElement("object2", ["answer", "option", "choice"]),
-    #         is_line_breaking
-    #     ]
-    # ),
-
-    ##4.2.2 使用分号连接
-
-# Pattern(
-    #     "{modal} you {verb1} {pointer} {object1}; {modal} you {verb2} the {adj} {object2}?{is_line_breaking}{{choices}}",
-    #     [
-    #         MetaElement("modal", ["Can", "Could"]),
-    #         MetaElement("verb1", ["consider", "think about"]),
-    #         MetaElement("pointer", ["the", "these"]),
-    #         MetaElement("object1", ["options", "choices", "selections"]),
-    #         MetaElement("verb2", ["select", "choose"]),
-    #         MetaElement("adj", ["correct", "best", "right", "most suitable"]),
-    #         MetaElement("object2", ["answer", "option", "choice"]),
-    #         is_line_breaking
-    #     ]
-    # ),
-
-    ##4.2.3 使用分号和连接词
-# Pattern(
-    #     "{modal} you {verb1} {pointer} {object1}; and, {modal} you {verb2} the {adj} {object2}?{is_line_breaking}{{choices}}",
-    #     [
-    #         MetaElement("modal", ["Can", "Could"]),
-    #         MetaElement("verb1", ["consider", "think about"]),
-    #         MetaElement("pointer", ["the", "these"]),
-    #         MetaElement("object1", ["options", "choices", "selections"]),
-    #         MetaElement("verb2", ["select", "choose"]),
-    #         MetaElement("adj", ["correct", "best", "right", "most suitable"]),
-    #         MetaElement("object2", ["answer", "option", "choice"]),
-    #         is_line_breaking
-    #     ]
-    # ),
-
-    ##4.3 复杂句
-    ##4.3.1 名词性从句
-    # Pattern(
-    #     "{modal} you decide {noun_clause}?{is_line_breaking}{{choices}}",
-    #     [
-    #         MetaElement("modal", ["Can", "Could"]),
-    #         MetaElement("noun_clause", ["which option is best", "what the right choice should be", "which choice aligns with the question"]),
-    #         is_line_breaking
-    #     ]
-    # )
-
-    ##4.3.2 副词性从句
-    # Pattern(
-    #     "{modal} you make a choice {adverbial_clause}?{is_line_breaking}{{choices}}",
-    #     [
-    #         MetaElement("modal", ["Can", "Could"]),
-    #         MetaElement("adverbial_clause", ["after considering all options", "when you consider all options",
-    #                                          "once you evaluate all options"]),
-    #         is_line_breaking,
-    #     ]
-    # )
-
-    ##4.3.3 形容词性从句
-    # Pattern(
-    #     "{modal} you {verb} the {object} {adjective_clause}?{is_line_breaking}{{choices}}",
-    #     [
-    #
-    #         MetaElement("modal", ["Can", "Could"]),
-    #         MetaElement("verb", ["select", "choose"]),
-    #         MetaElement("object", ["selection", "option", "choice"]),
-    #         MetaElement("adjective_clause", ["that best meets the question", "which seems most suitable", "that aligns with the question"]),
-    #         is_line_breaking
-    #     ]
-    # )
-
-
-
-]
