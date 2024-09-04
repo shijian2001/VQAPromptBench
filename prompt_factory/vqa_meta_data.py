@@ -692,7 +692,7 @@ CHOICES_PATTERNS = {
         "Complex":{
             "Adjective-Clauses":[
                 Pattern(
-                    "{is_please}{verb} the{adj}{answer}{from}{which} include only one {correct} answer{to} the question.{choice}{{choices}}",
+                    "{is_please}{verb} the{adj}{answer}{from}{which} include only one {correct} answer {to} the question.{choice}{{choices}}",
                     [
                         MetaElement("verb", ["make", "pick", "indicate", "select", "choose"]),
                         MetaElement("adj", [" right ", " correct ", " accurate ", " "]),
