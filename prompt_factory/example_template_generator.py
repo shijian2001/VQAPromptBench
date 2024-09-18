@@ -775,7 +775,7 @@ CHOICES_PATTERNS = {
                         MetaElement("is_available", [" ", " available ", " potential ", " possible "]),
                         MetaElement("choices", ["choices", "options", "selections"]),
                         MetaElement("which", ["which", "that"]),
-                        MetaElement("correct", ["correct", "best", "most situable"]),
+                        MetaElement("correct", ["correct", "best", "most suitable"]),
                         MetaElement("are", [":", " are:"]),
                         is_line_breaking
                     ]
@@ -787,7 +787,7 @@ CHOICES_PATTERNS = {
                         MetaElement("is_available", [" ", " available ", " potential ", " possible "]),
                         MetaElement("choices", ["choices", "options", "selections"]),
                         MetaElement("which", ["which", "that"]),
-                        MetaElement("correct", ["correct", "best", "most situable"]),
+                        MetaElement("correct", ["correct", "best", "most suitable"]),
                         is_line_breaking
                     ]
                 ),
@@ -798,7 +798,7 @@ CHOICES_PATTERNS = {
                         MetaElement("is_available", [" ", " available ", " potential ", " possible "]),
                         MetaElement("choices", ["choices", "options", "selections"]),
                         MetaElement("which", ["which", "that"]),
-                        MetaElement("correct", ["correct", "best", "most situable"]),
+                        MetaElement("correct", ["correct", "best", "most suitable"]),
                         MetaElement("provided", ["provided", "offered", "presented", "listed"]),
                         MetaElement("below", [":", " below:", " here:", " as follows:"]),
                         is_line_breaking
@@ -811,7 +811,7 @@ CHOICES_PATTERNS = {
                         MetaElement("is_available", [" ", " available ", " potential ", " possible "]),
                         MetaElement("choices", ["choices", "options", "selections"]),
                         MetaElement("which", ["which", "that"]),
-                        MetaElement("correct", ["correct", "best", "most situable"]),
+                        MetaElement("correct", ["correct", "best", "most suitable"]),
                         is_line_breaking
                     ]
                 ),
@@ -870,7 +870,7 @@ CHOICES_PATTERNS = {
                             " from the available choices ", " from the available options ", " "
                         ]),
                         MetaElement("which", ["which", "that"]),
-                        MetaElement("correct", ["correct", "best", "most situable"]),
+                        MetaElement("correct", ["correct", "best", "most suitable"]),
                         MetaElement("to", [
                             "to correctly answer", "to answer", 
                             "to correctly address", "to address", 

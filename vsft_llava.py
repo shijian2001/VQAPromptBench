@@ -6,7 +6,6 @@ from transformers import BitsAndBytesConfig
 from peft import LoraConfig, get_peft_model
 from transformers import AutoProcessor, LlavaForConditionalGeneration
 from vqa_datasets import SingleImageQADataset
-from prompt_factory import BaseTemplateGenerator, QUESTION_PATTERNS
 import pandas as pd
 import random
 from functools import wraps
@@ -35,9 +34,9 @@ deepspeed.ops.op_builder.CPUAdamBuilder().load()
 
 ## Data Processor
 
-from prompt_factory import BaseTemplateGenerator, QUESTION_PATTERNS
+from prompt_factory import TemplateGenerator, QUESTION_PATTERNS
 
-question_template_generator = BaseTemplateGenerator(QUESTION_PATTERNS)
+question_template_generator = TemplateGenerator(QUESTION_PATTERNS)
 
 def _render_prompt_template(messages: str):
     question_template = question_template_generator.generate()
@@ -117,7 +116,6 @@ class DataCollator:
             # image = mm_images[mm_images["index"] == example["images"]]["image"].values[0]
             image = example["images"][0]
             messages = example["messages"]
-            # text = self.processor.apply_chat_template(messages, tokenize=False, add_generation_prompt=False)
             text = _apply_chat_template(messages, add_generation_prompt=False)
             texts.append(text.strip())
             images.append(image)
@@ -143,7 +141,6 @@ def main(data_path, output_dir, hub_model_id="", use_lora=False, use_4_bit=False
     processor = AutoProcessor.from_pretrained(
         "llava-hf/llava-1.5-7b-hf",
     )
-    # processor.chat_template = LLAVA_CHAT_TEMPLATE
     
     ## Load model
 
@@ -197,15 +194,15 @@ def main(data_path, output_dir, hub_model_id="", use_lora=False, use_4_bit=False
     train_dataset, eval_dataset = dataset["train"], dataset["test"]
 
     # Sample 10k data
-    # train_dataset_len = len(train_dataset)
+    train_dataset_len = len(train_dataset)
 
-    # @with_fixed_seed(42)
-    # def get_random_indices():
-    #     return random.sample(range(train_dataset_len), 10000)
+    @with_fixed_seed(42)
+    def get_random_indices():
+        return random.sample(range(train_dataset_len), 10000)
     
-    # train_random_indices = get_random_indices()
+    train_random_indices = get_random_indices()
 
-    # train_dataset_10k = train_dataset.select(train_random_indices)
+    train_dataset_10k = train_dataset.select(train_random_indices)
 
     ## Data collator
 
@@ -245,7 +242,7 @@ def main(data_path, output_dir, hub_model_id="", use_lora=False, use_4_bit=False
         model=model,
         args=training_args,
         data_collator=data_collator,
-        train_dataset=train_dataset,
+        train_dataset=train_dataset_10k,
         eval_dataset=eval_dataset,
     )
 
