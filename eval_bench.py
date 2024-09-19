@@ -82,7 +82,7 @@ def experiment(
             #     logs[vqa_model_name][benchmark_name][f'prompt_{i+1}'].append(result["accuracy"])
             
             # batch evaluation
-            batch_size = 100
+            batch_size = 20
             for j in tqdm(range(0, len(benchmark), batch_size), total=(len(benchmark) + batch_size - 1) // batch_size):
                 batch = benchmark[j:j+batch_size]
                 batch_results = vqa_model.batch_multiple_choice_qa_random_ordering(
@@ -119,7 +119,7 @@ def experiment(
     # save logs to disk
     # ./logs/multi-templates-logs/100_samples_best_3_epoch_mask_259k_llava_data_generator_templates_{vqa_model_name}_eval.json
     # ./logs/multi-templates-logs/100_samples_{vqa_model_name}_eval.json
-    with open(f'./logs/multi-templates-logs/mmbench/100_samples_{vqa_model_name}_eval.json', "w", encoding='utf-8') as f:
+    with open(f'./logs/template-generator/evaluation/mmbench/100_samples_{vqa_model_name}_eval.json', "w", encoding='utf-8') as f:
         json.dump(logs, f, ensure_ascii=False, indent=4)
 
     print(f"{vqa_model_name} evaluations have saved successfully!")
@@ -134,6 +134,6 @@ if __name__ == "__main__":
     experiment(
         vqa_model_name=args.vqa_model,
         benchmark_names=["mmbench"],
-        prompt_templates=json.load(open("./prompt_factory/test_vsft_lora.json", "r"))["MultiChoiceImageQa"],
+        prompt_templates=json.load(open("./prompt_factory/held_out_prompts.json", "r"))["MultiChoiceImageQa"],
         seed=42
     )

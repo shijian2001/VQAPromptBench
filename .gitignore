@@ -4,6 +4,7 @@ vqa_eval_test.ipynb
 prompt_factory/generate_prompt_library.py
 prompt_factory/generate_prompt_pool.py
 prompt_factory/template_generator_test.py
+prompt_factory/gen_test_prompts.py
 prompt_factory/prompt_library.json
 prompt_factory/prompt_pool.json
 prompt_factory/test_vsft_lora.json
