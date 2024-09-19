@@ -34,12 +34,10 @@ deepspeed.ops.op_builder.CPUAdamBuilder().load()
 
 ## Data Processor
 
-from prompt_factory import TemplateGenerator, QUESTION_PATTERNS
-
-question_template_generator = TemplateGenerator(QUESTION_PATTERNS)
+from prompt_factory import get_random_question_template
 
 def _render_prompt_template(messages: str):
-    question_template = question_template_generator.generate()
+    question_template = get_random_question_template()
     if messages[0] == "\n":
         prompt = "\n"+ question_template.format(question=messages.strip())
     elif messages[-1] == "\n":
