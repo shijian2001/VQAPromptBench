@@ -36,13 +36,13 @@ def generate_templates_set(template_generator: Callable, num_templates: int):
         templates_set.add(template)
     return list(templates_set)
 
-def assign_templates(num_data: int, template_pool: List[str]) -> List[str]:
+def assign_templates(num_data: int, templates_set: List[str]) -> List[str]:
     """Assign a fixed set of prompt templates to the data and ensure that each template is sampled."""
-    assert num_data >= len(template_pool), (
+    assert num_data >= len(templates_set), (
         "The number of items should be greater than or equal to the number of templates."
     )
-    randomized_templates = random.sample(template_pool, len(template_pool))
-    all_templates = randomized_templates + random.choices(template_pool, k=num_data - len(template_pool))
+    randomized_templates = random.sample(templates_set, len(templates_set))
+    all_templates = randomized_templates + random.choices(templates_set, k=num_data - len(templates_set))
     random.shuffle(all_templates)
-    assert set(all_templates) == set(template_pool), "Not all templates have been used." 
+    assert set(all_templates) == set(templates_set), "Not all templates have been used." 
     return all_templates
