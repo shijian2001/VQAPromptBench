@@ -1,4 +1,6 @@
 eval_hallucination.py
+extract_cauldron_vqa_data.py
+prepare_vsft_data.py
 vqa_eval.ipynb
 vqa_eval_test.ipynb
 prompt_factory/generate_prompt_library.py
