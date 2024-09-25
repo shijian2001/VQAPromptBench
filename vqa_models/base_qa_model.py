@@ -7,7 +7,7 @@ import torch
 import json
 
 SYSTEM_PROMPT = """You are doing a multiple-choice question. 
-You will be given an image, question, context, and corresponding options. 
+You will be given an image, question and corresponding options. 
 Please give the best option first, and then add your explanation afterward. 
 Please strictly follow the json output format with the two keys: "choice", "explanation"
 
@@ -57,7 +57,7 @@ def extraction(answer):
 	choices_match = choices_pattern.search(answer)
 	choices = choices_match.group(1).strip() if choices_match else "none"
 	
-	keywords = ["Question", "Context", "Choices"]
+	keywords = ["Question", "Choices"]
 	pattern = re.compile(rf"({'|'.join(keywords)}):\s.*?(?:\n|$)", re.IGNORECASE)
 	cleaned_answer = pattern.sub("", answer)
 	
@@ -182,10 +182,10 @@ class QAModel(Model):
 
 	# Add optional para: prompt_func
 	@torch.no_grad()
-	def multiple_choice_qa(self, data, question, context, choices, prompt_func=None, answer=None):
+	def multiple_choice_qa(self, data, question, choices, prompt_func=None, answer=None):
 		# Get VQA model's answer
 		prefix1, prefix2, options = make_options(choices, self.format)
-		prompt = prompt_func(question, context, options) if prompt_func else self.prompt_func(question, context, options)
+		prompt = prompt_func(question, options) if prompt_func else self.prompt_func(question, options)
 		if self.enable_interpretation:
 			prompt = SYSTEM_PROMPT + "\n" + prompt
 		free_form_answer = self._qa(data, prompt)
@@ -219,12 +219,12 @@ class QAModel(Model):
 		return result
 	
 	@torch.no_grad()
-	def batch_multiple_choice_qa(self, images, questions, contexts, choices, prompt_func=None, answers=None):
+	def batch_multiple_choice_qa(self, images, questions, choices, prompt_func=None, answers=None):
 		# Get VQA model's answer
 		prefixs1, prefixs2, options = map(list, zip(*[make_options(choice, self.format) for choice in choices]))
 		prompts = [
-			prompt_func(question, context, option) if prompt_func else self.prompt_func(question, context, option) 
-			for question, context, option in zip(questions, contexts, options)
+			prompt_func(question, option) if prompt_func else self.prompt_func(question, option) 
+			for question, option in zip(questions, options)
 		]
 		free_form_answers = self._qa(images, prompts, batched=True)
 		free_form_answers = [free_form_answer.strip() for free_form_answer in free_form_answers]
@@ -257,27 +257,27 @@ class QAModel(Model):
 
 	# Add optional para: prompt_func
 	@torch.no_grad()
-	def multiple_choice_qa_random_ordering(self, data, question, context, choices, prompt_func=None, answer=None, n_trials=3):
+	def multiple_choice_qa_random_ordering(self, data, question, choices, prompt_func=None, answer=None, n_trials=3):
 		results = {}
 		accuracy = 0
 		for i in range(n_trials):
 			choices_i = choices.copy()
 			random.shuffle(choices_i)
-			results[i] = self.multiple_choice_qa(data, question, context, choices_i, prompt_func, answer)
+			results[i] = self.multiple_choice_qa(data, question, choices_i, prompt_func, answer)
 			accuracy += results[i]["accuracy"]
 		results["accuracy"] = accuracy / n_trials
 		return results
 
 	@torch.no_grad()
-	def batch_multiple_choice_qa_random_ordering(self, images, questions, contexts, choices, prompt_func=None, answers=None, n_trials=3):
-		assert len(images) == len(questions) == len(contexts) == len(choices), "All lengths must the the same"
+	def batch_multiple_choice_qa_random_ordering(self, images, questions, choices, prompt_func=None, answers=None, n_trials=3):
+		assert len(images) == len(questions) == len(choices), "All lengths must the the same"
 		batch_size = len(questions)
 		batch_results = [{} for _ in range(batch_size)]
 		for i in range(n_trials):
 			choices_i = choices.copy()
 			for choice_i in choices_i:
 				random.shuffle(choice_i)
-			batch_results_i = self.batch_multiple_choice_qa(images, questions, contexts, choices_i, prompt_func, answers)
+			batch_results_i = self.batch_multiple_choice_qa(images, questions, choices_i, prompt_func, answers)
 			for single_results, single_results_i in zip(batch_results, batch_results_i):
 				single_results[i] = single_results_i
 	
@@ -287,12 +287,12 @@ class QAModel(Model):
 		return batch_results
 	
 	@torch.no_grad()
-	def batch_qa_extraction(self, images, questions, contexts, choices, prompt_func=None, answers=None):
+	def batch_qa_extraction(self, images, questions, choices, prompt_func=None, answers=None):
 		# Get VQA model's answer
 		prefixs1, prefixs2, options = map(list, zip(*[make_options(choice, self.format) for choice in choices]))
 		prompts = [
-			prompt_func(question, context, option) if prompt_func else self.prompt_func(question, context, option) 
-			for question, context, option in zip(questions, contexts, options)
+			prompt_func(question, option) if prompt_func else self.prompt_func(question, option) 
+			for question, option in zip(questions, options)
 		]
 		free_form_answers = self._qa(images, prompts, batched=True)
 		free_form_answers = [free_form_answer.strip() for free_form_answer in free_form_answers]

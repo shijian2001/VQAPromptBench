@@ -14,32 +14,34 @@ from .base_qa_model import QAModelInstance, QAModel
 
 imageqa_models = {
 
-	"instructblip-flant5xl" : ("InstructBlip", "Salesforce/instructblip-flan-t5-xl"),
-	"instructblip-flant5xxl": ("InstructBlip", "Salesforce/instructblip-flan-t5-xxl"),
-	"instructblip-vicuna7b" : ("InstructBlip", "Salesforce/instructblip-vicuna-7b"),
-	"instructblip-vicuna13b": ("InstructBlip", "Salesforce/instructblip-vicuna-13b"),
-	"blip2-flant5xxl"       : ("BLIP2", "Salesforce/blip2-flan-t5-xxl"),
-	"llavav1.5-7b"          : ("LLaVA", "llava-hf/llava-1.5-7b-hf"),
-	"llavav1.5-7b-trl"      : ("LLaVA", "HuggingFaceH4/vsft-llava-1.5-7b-hf-trl"),
-	"llavav1.5-7b-10k-tune" : ("LLaVA", "/linxindisk/VQAPromptBench/logs/multi-templates-finetuning/mask_instruct_all_param_generator_10k_llava_data_3epochs/best_model"),
-	"llavav1.5-7b-259k-tune": ("LLaVA", "/linxindisk/VQAPromptBench/logs/multi-templates-finetuning/mask_instruct_all_param_generator_259k_llava_data_3epochs/best_model"),
-	"llavav1.5-13b"         : ("LLaVA", "llava-hf/llava-1.5-13b-hf"),
-	"llavav1.6-7b"          : ("LLaVA", "llava-hf/llava-v1.6-vicuna-7b-hf"),
-	"llavav1.6-13b"         : ("LLaVA", "llava-hf/llava-v1.6-vicuna-13b-hf"),
-	"llavav1.6-34b"         : ("LLaVA", "llava-hf/llava-v1.6-34b-hf"),
-	"llava1.6-34b-api"      : ("LLaVA34B", '<replicate-api>'),
-	"qwenvl"                : ("QwenVL", "Qwen/Qwen-VL"),
-	"qwenvl-chat"           : ("QwenVLChat", "Qwen/Qwen-VL-Chat"),
-	"internvl-chat-v1.5"    : ("InternVLChat", 'failspy/InternVL-Chat-V1-5-quantable'),
-	"deepseek-vl-7b-chat"   : ("DeepSeekVLChat", 'deepseek-ai/deepseek-vl-7b-chat'),
-	"idefics2-8b"           : ("IDEFICS2", "HuggingFaceM4/idefics2-8b"),
-	"phi-3-vision"          : ("Phi3Vision", "microsoft/Phi-3-vision-128k-instruct"),
+	"instructblip-flant5xl" 		: ("InstructBlip", "Salesforce/instructblip-flan-t5-xl"),
+	"instructblip-flant5xxl"		: ("InstructBlip", "Salesforce/instructblip-flan-t5-xxl"),
+	"instructblip-vicuna7b" 		: ("InstructBlip", "Salesforce/instructblip-vicuna-7b"),
+	"instructblip-vicuna13b"		: ("InstructBlip", "Salesforce/instructblip-vicuna-13b"),
+	"blip2-flant5xxl"       		: ("BLIP2", "Salesforce/blip2-flan-t5-xxl"),
+	"llavav1.5-7b"          		: ("LLaVA", "llava-hf/llava-1.5-7b-hf"),
+	"llavav1.5-7b-trl"      		: ("LLaVA", "HuggingFaceH4/vsft-llava-1.5-7b-hf-trl"),
+	"llavav1.5-7b-10k-tune" 		: ("LLaVA", "/linxindisk/VQAPromptBench/logs/multi-templates-finetuning/mask_instruct_all_param_generator_10k_llava_data_3epochs/best_model"),
+	"llavav1.5-7b-259k-tune"		: ("LLaVA", "/linxindisk/VQAPromptBench/logs/multi-templates-finetuning/mask_instruct_all_param_generator_259k_llava_data_3epochs/best_model"),
+	"llavav1.5-7b-lora-templated"	: ('LLaVA', "shijianS01/llava-v1.5-7b-lora-templated"),
+	"llavav1.5-7b-lora"				: ('LLaVA', "shijianS01/llava-v1.5-7b-lora"),
+	"llavav1.5-13b"         		: ("LLaVA", "llava-hf/llava-1.5-13b-hf"),
+	"llavav1.6-7b"          		: ("LLaVA", "llava-hf/llava-v1.6-vicuna-7b-hf"),
+	"llavav1.6-13b"         		: ("LLaVA", "llava-hf/llava-v1.6-vicuna-13b-hf"),
+	"llavav1.6-34b"         		: ("LLaVA", "llava-hf/llava-v1.6-34b-hf"),
+	"llava1.6-34b-api"      		: ("LLaVA34B", '<replicate-api>'),
+	"qwenvl"                		: ("QwenVL", "Qwen/Qwen-VL"),
+	"qwenvl-chat"           		: ("QwenVLChat", "Qwen/Qwen-VL-Chat"),
+	"internvl-chat-v1.5"    		: ("InternVLChat", 'failspy/InternVL-Chat-V1-5-quantable'),
+	"deepseek-vl-7b-chat"   		: ("DeepSeekVLChat", 'deepseek-ai/deepseek-vl-7b-chat'),
+	"idefics2-8b"           		: ("IDEFICS2", "HuggingFaceM4/idefics2-8b"),
+	"phi-3-vision"          		: ("Phi3Vision", "microsoft/Phi-3-vision-128k-instruct"),
 
-	"gpt4v"                 : ("GPT4V", "<openai-api>"),
-	"gpt4o"                 : ("GPT4O", "<openai-api>"),
-	"qwen-vl-plus"          : ("QwenVLPlus", ['<qwen-api>', '<aliyun-access-id>', '<aliyun-access-secret>']),
-	"qwen-vl-max"           : ("QwenVLMax", ['<qwen-api>', '<aliyun-access-id>', '<aliyun-access-secret>']),
-	"gemini-vision-pro"     : ("GeminiVisionPro", "<google-api>"),
+	"gpt4v"                 		: ("GPT4V", "<openai-api>"),
+	"gpt4o"                 		: ("GPT4O", "<openai-api>"),
+	"qwen-vl-plus"          		: ("QwenVLPlus", ['<qwen-api>', '<aliyun-access-id>', '<aliyun-access-secret>']),
+	"qwen-vl-max"           		: ("QwenVLMax", ['<qwen-api>', '<aliyun-access-id>', '<aliyun-access-secret>']),
+	"gemini-vision-pro"     		: ("GeminiVisionPro", "<google-api>"),
 }
 
 
@@ -197,6 +199,15 @@ class LLaVA(QAModelInstance):
 			self.processor = AutoProcessor.from_pretrained("llava-hf/llava-1.5-7b-hf", device_map="auto")
 		# Need update after uploading the finetuned model to huggingface
 		elif ckpt == "/linxindisk/VQAPromptBench/logs/multi-templates-finetuning/mask_instruct_all_param_generator_259k_llava_data_3epochs/best_model":
+			from transformers import AutoProcessor, LlavaForConditionalGeneration
+			self.model = LlavaForConditionalGeneration.from_pretrained(
+				ckpt,
+				torch_dtype=model_precision,
+				low_cpu_mem_usage=True,
+				device_map="auto"
+			).eval()
+			self.processor = AutoProcessor.from_pretrained("llava-hf/llava-1.5-7b-hf", device_map="auto")
+		elif ckpt == "shijianS01/llava-v1.5-7b-lora-templated" or ckpt == "shijianS01/llava-v1.5-7b-lora":
 			from transformers import AutoProcessor, LlavaForConditionalGeneration
 			self.model = LlavaForConditionalGeneration.from_pretrained(
 				ckpt,

@@ -11,10 +11,9 @@ import argparse
 import os, csv
 
 def build_prompt_func(prompt_template: str):
-    def imageqa_prompt(question: str, context: str, choices: List[str]):
+    def imageqa_prompt(question: str, choices: List[str]):
         prompt = prompt_template.format(
             question=question,
-            context=context,
             choices=" ".join(choices)
         )
         return prompt
@@ -74,7 +73,6 @@ def experiment(
             #     result = vqa_model.multiple_choice_qa_random_ordering(
             #         data = sample["image"],
             #         question = sample["question"],
-            #         context=sample["context"],
             #         choices = sample["choices"],
             #         answer = sample["answer"],
             #         prompt_func= build_prompt_func(prompt_template)
@@ -88,7 +86,6 @@ def experiment(
                 batch_results = vqa_model.batch_multiple_choice_qa_random_ordering(
                     images = batch["image"],
                     questions = batch["question"],
-                    contexts = batch["context"],
                     choices = batch["choices"],
                     answers = batch["answer"],
                     prompt_func= build_prompt_func(prompt_template)
@@ -119,7 +116,7 @@ def experiment(
     # save logs to disk
     # ./logs/multi-templates-logs/100_samples_best_3_epoch_mask_259k_llava_data_generator_templates_{vqa_model_name}_eval.json
     # ./logs/multi-templates-logs/100_samples_{vqa_model_name}_eval.json
-    with open(f'./logs/template-generator/evaluation/mmbench/100_samples_{vqa_model_name}_eval.json', "w", encoding='utf-8') as f:
+    with open(f'./logs/template-generator/evaluation/{benchmark}/100_samples_{vqa_model_name}_eval.json', "w", encoding='utf-8') as f:
         json.dump(logs, f, ensure_ascii=False, indent=4)
 
     print(f"{vqa_model_name} evaluations have saved successfully!")
@@ -133,7 +130,7 @@ if __name__ == "__main__":
 
     experiment(
         vqa_model_name=args.vqa_model,
-        benchmark_names=["mmbench"],
-        prompt_templates=json.load(open("./prompt_factory/held_out_prompts.json", "r"))["MultiChoiceImageQa"],
+        benchmark_names=["blink", "mmbench", "seedbench1"],
+        prompt_templates=json.load(open("./prompt_factory/heldout_q_c_prompts.json", "r"))["MultiChoiceImageQa"],
         seed=42
     )
